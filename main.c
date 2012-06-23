@@ -168,7 +168,7 @@ int main( int argc, char *argv[] )
 #endif
 #endif
 	dbgprintf("Built: " __DATE__ " " __TIME__ "\n");
-	dbgprintf("This software is licensed under GPLv3, for more details visit:\nhttp://code.google.com/p/diosmioslite\n");
+	dbgprintf("This software is licensed under GPLv3, for more details visit:\nhttp://code.google.com/p/diosmios\n");
 
 	//dbgprintf("CPU Ver:%d.%d\n", SP[1], SP[0] );
 	
