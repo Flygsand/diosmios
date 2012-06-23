@@ -1,0 +1,70 @@
+#define CPSR_IRQDIS 0x80
+#define CPSR_FIQDIS 0x40
+
+.arm
+
+.globl _dc_inval_entries
+.globl _dc_flush_entries
+.globl _dc_flush
+.globl _dc_inval
+.globl _ic_inval
+.globl _drain_write_buffer
+.globl _tlb_inval
+.globl irq_kill
+.globl irq_restore
+
+.text
+
+irq_kill:
+	mrs		r1, cpsr
+	and		r0, r1, #(CPSR_IRQDIS|CPSR_FIQDIS)
+	orr		r1, r1, #(CPSR_IRQDIS|CPSR_FIQDIS)
+	msr		cpsr_c, r1
+	bx		lr
+
+irq_restore:
+	mrs		r1, cpsr
+	bic		r1, r1, #(CPSR_IRQDIS|CPSR_FIQDIS)
+	orr		r1, r1, r0
+	msr		cpsr_c, r1
+	bx		lr
+
+_dc_inval_entries:
+	mcr		p15, 0, r0, c7, c6, 1
+	add		r0, #0x20
+	subs	r1, #1
+	bne		_dc_inval_entries
+	bx		lr
+
+_dc_flush_entries:
+	mcr		p15, 0, r0, c7, c10, 1
+	add		r0, #0x20
+	subs	r1, #1
+	bne		_dc_flush_entries
+	bx		lr
+
+_dc_flush:
+	mrc		p15, 0, pc, c7, c10, 3
+	bne		_dc_flush
+	bx		lr
+
+_dc_inval:
+	mov		r0, #0
+	mcr		p15, 0, r0, c7, c6, 0
+	bx		lr
+
+_ic_inval:
+	mov		r0, #0
+	mcr		p15, 0, r0, c7, c5, 0
+	bx		lr
+
+_drain_write_buffer:
+	mov		r0, #0
+	mcr		p15, 0, r0, c7, c10, 4
+	bx		lr
+
+_tlb_inval:
+	mov		r0, #0
+	mcr		p15, 0, r0, c8, c7
+	bx		lr
+
