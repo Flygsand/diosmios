@@ -41,29 +41,29 @@ extern int verbose;
 static void 
 dbg_qtd (const char *label, struct ehci_qtd *qtd)
 {
-	ehci_dbg( "%s td %p n%08x %08x t%08x p0=%08x\n", label, qtd,
-		hc32_to_cpup( &qtd->hw_next),
-		hc32_to_cpup( &qtd->hw_alt_next),
-		hc32_to_cpup( &qtd->hw_token),
-		hc32_to_cpup( &qtd->hw_buf [0]));
-	if (qtd->hw_buf [1])
-		ehci_dbg( "  p1=%08x p2=%08x p3=%08x p4=%08x\n",
-			hc32_to_cpup( &qtd->hw_buf[1]),
-			hc32_to_cpup( &qtd->hw_buf[2]),
-			hc32_to_cpup( &qtd->hw_buf[3]),
-			hc32_to_cpup( &qtd->hw_buf[4]));
+	//ehci_dbg( "%s td %p n%08x %08x t%08x p0=%08x\n", label, qtd,
+	//	hc32_to_cpup( &qtd->hw_next),
+	//	hc32_to_cpup( &qtd->hw_alt_next),
+	//	hc32_to_cpup( &qtd->hw_token),
+	//	hc32_to_cpup( &qtd->hw_buf [0]));
+	//if (qtd->hw_buf [1])
+	//	ehci_dbg( "  p1=%08x p2=%08x p3=%08x p4=%08x\n",
+	//		hc32_to_cpup( &qtd->hw_buf[1]),
+	//		hc32_to_cpup( &qtd->hw_buf[2]),
+	//		hc32_to_cpup( &qtd->hw_buf[3]),
+	//		hc32_to_cpup( &qtd->hw_buf[4]));
 }
 
 static void 
 dbg_qh (const char *label, struct ehci_qh *qh)
 {
-	ehci_dbg ( "%s qh %p n%08x info %x %x qtd %x\n", label,
-                  qh, 
-                  hc32_to_cpu(qh->hw_next), 
-                  hc32_to_cpu(qh->hw_info1), 
-                  hc32_to_cpu(qh->hw_info2),
-                  hc32_to_cpu(qh->hw_current));
-	dbg_qtd ("overlay",  (struct ehci_qtd *) &qh->hw_qtd_next);
+	//ehci_dbg ( "%s qh %p n%08x info %x %x qtd %x\n", label,
+ //                 qh, 
+ //                 hc32_to_cpu(qh->hw_next), 
+ //                 hc32_to_cpu(qh->hw_info1), 
+ //                 hc32_to_cpu(qh->hw_info2),
+ //                 hc32_to_cpu(qh->hw_current));
+	//dbg_qtd ("overlay",  (struct ehci_qtd *) &qh->hw_qtd_next);
 }
 
 static void
@@ -113,37 +113,37 @@ dbg_status (void)
 
 void debug_qtds(void)
 {
-        struct ehci_qh *qh = ehci->async; 
-        struct ehci_qtd *qtd;
-        dbg_qh ("qh",qh);
-        dbg_command ();
-        dbg_status ();
-        for(qtd = qh->qtd_head; qtd; qtd = qtd->next)
-        {
-                ehci_dma_unmap_bidir(qtd->qtd_dma,sizeof(struct ehci_qtd));
-                dbg_qtd("qtd",qtd);
-                ehci_dma_map_bidir(qtd,sizeof(struct ehci_qtd));
-        }
+        //struct ehci_qh *qh = ehci->async; 
+        //struct ehci_qtd *qtd;
+        //dbg_qh ("qh",qh);
+        //dbg_command ();
+        //dbg_status ();
+        //for(qtd = qh->qtd_head; qtd; qtd = qtd->next)
+        //{
+        //        ehci_dma_unmap_bidir(qtd->qtd_dma,sizeof(struct ehci_qtd));
+        //        dbg_qtd("qtd",qtd);
+        //        ehci_dma_map_bidir(qtd,sizeof(struct ehci_qtd));
+        //}
 
 }
 void dump_qh(struct ehci_qh	*qh)
 {
-        struct ehci_qtd	*qtd;
-        dbg_command ();
-        dbg_status ();
-        ehci_dma_unmap_bidir(qh->qh_dma,sizeof(struct ehci_qh));
-        dbg_qh("qh",qh);
-        print_hex_dump_bytes("qh:",DUMP_PREFIX_OFFSET,(void*)qh,12*4);
-        for(qtd = qh->qtd_head; qtd; qtd = qtd->next){
-                u32 *buf;
-                ehci_dma_unmap_bidir(qtd->qtd_dma,sizeof(struct ehci_qtd));
-                dbg_qtd("qtd",qtd);
-                print_hex_dump_bytes("qtd:",DUMP_PREFIX_OFFSET,(void*)qtd,8*4);
-                buf = (u32*)hc32_to_cpu(qtd->hw_buf[0]);
-                if(buf)
-                        print_hex_dump_bytes("qtd buf:",DUMP_PREFIX_OFFSET,(void*)(buf),8*4);
+        //struct ehci_qtd	*qtd;
+        //dbg_command ();
+        //dbg_status ();
+        //ehci_dma_unmap_bidir(qh->qh_dma,sizeof(struct ehci_qh));
+        //dbg_qh("qh",qh);
+        //print_hex_dump_bytes("qh:",DUMP_PREFIX_OFFSET,(void*)qh,12*4);
+        //for(qtd = qh->qtd_head; qtd; qtd = qtd->next){
+        //        u32 *buf;
+        //        ehci_dma_unmap_bidir(qtd->qtd_dma,sizeof(struct ehci_qtd));
+        //        dbg_qtd("qtd",qtd);
+        //        print_hex_dump_bytes("qtd:",DUMP_PREFIX_OFFSET,(void*)qtd,8*4);
+        //        buf = (u32*)hc32_to_cpu(qtd->hw_buf[0]);
+        //        if(buf)
+        //                print_hex_dump_bytes("qtd buf:",DUMP_PREFIX_OFFSET,(void*)(buf),8*4);
 
-        }
+        //}
 }
 
 /*-------------------------------------------------------------------------*/
@@ -176,11 +176,11 @@ static int handshake (void __iomem *ptr,
 		result &= mask;
 		if (result == done)
 			return 0;
-		udelay (1);
+		udelay(1);
 		usec--;
 	} while (usec > 0);
 
-        ehci_dbg("\nhandshake timeout!!\n\n");
+        ehci_dbg("\nEHCI:handshake timeout!!\n\n");
         dump_qh(ehci->async);
         dump_qh(ehci->asyncqh);
         //BUG();
@@ -191,8 +191,8 @@ static int handshake (void __iomem *ptr,
 /* one-time init, only for memory state */
 static int ehci_init(void)
 {
-        int retval;
- 	if ((retval = ehci_mem_init()) < 0)
+    int retval;
+ 	if( (retval = ehci_mem_init()) < 0 )
 		return retval;
 	/*
 	 * dedicate a qh for the async ring head, since we couldn't unlink
@@ -206,7 +206,12 @@ static int ehci_init(void)
 	ehci->async->hw_token = cpu_to_hc32( QTD_STS_HALT);
 	ehci->async->hw_qtd_next = EHCI_LIST_END();
 	ehci->async->hw_alt_next = EHCI_LIST_END();//QTD_NEXT( ehci->async->dummy->qtd_dma);
+
+	if( ehci->ctrl_buffer != NULL )
+		USB_Free( ehci->ctrl_buffer );
+
 	ehci->ctrl_buffer =  USB_Alloc(sizeof(usbctrlrequest));
+
 	ehci->command = 0;
 	ehci_writel( 0x00800002, &ehci->regs->command); 
 	ehci_writel( ehci->periodic_dma, &ehci->regs->frame_list); 
@@ -281,7 +286,7 @@ static void qh_end_transfer (void)
 
         if (!(qtd->length ==0 && ((token & 0xff)==QTD_STS_HALT)) &&  (token & QTD_STS_HALT))
 		{
-            ehci_dbg("\nqtd error!:");
+            ehci_dbg("EHCI:qtd error!:");
             if (token & QTD_STS_BABBLE)
 			{
                     /* FIXME "must" disable babbling device's port too */
@@ -562,7 +567,7 @@ int ehci_do_urb ( struct ehci_device *dev, struct ehci_urb	*urb)
 	{
 		return urb->actual_length;
     }
-    ehci_dbg ( "un successfull urb %d!!\n", retval);
+    ehci_dbg ( "EHCI:unsuccessfull urb %d!!\n", retval);
     return retval;
 }
 
@@ -592,7 +597,7 @@ s32 ehci_control_message(struct ehci_device *dev,u8 bmRequestType,u8 bmRequest,u
 		{
 			urb.transfer_buffer = USB_Alloc( wLength );
 
-			dbgprintf("memcpy(%p,%p,%u)\n", urb.transfer_buffer, buf, wLength );
+			//dbgprintf("memcpy(%p,%p,%u)\n", urb.transfer_buffer, buf, wLength );
 			memcpy( urb.transfer_buffer, buf, wLength );
 
 			ret = ehci_do_urb( dev, &urb );
@@ -667,12 +672,12 @@ int ehci_reset_port(int port)
 		return -ENODEV;// no USB2 device connected
     }
 
-    ehci_dbg ( "port %d has usb2 device connected! reset it...\n", port);
+    ehci_dbg ( "EHCI:port %d has usb2 device connected! reset it...\n", port);
     ehci_writel( 0x1803,status_reg);
 
     while ((ehci_readl(status_reg) & 0x1801) != 0x1801)
 	{
-      ehci_dbg ( "Waiting for port %d to settle...(%04x)\n", port, ehci_readl(status_reg));
+      ehci_dbg ( "EHCI:Waiting for port %d to settle...(%04x)\n", port, ehci_readl(status_reg));
       ehci_writel( 0x1803,status_reg);
       msleep(500);
     }
@@ -685,30 +690,30 @@ int ehci_reset_port(int port)
 
     if (retval != 0)
 	{
-        ehci_dbg ( "port %d reset error %d\n", port, retval);
+        ehci_dbg ( "EHCI:port %d reset error %d\n", port, retval);
         return retval;
     }
-    ehci_dbg ( "port %d reseted status:%04x...\n", port,ehci_readl(status_reg));
+    ehci_dbg ( "EHCI:port %d reseted status:%04x...\n", port,ehci_readl(status_reg));
     msleep(50);
     // now the device has the default device id
     retval = ehci_control_message( dev, USB_CTRLTYPE_DIR_DEVICE2HOST, USB_REQ_GETDESCRIPTOR, USB_DT_DEVICE<<8, 0, sizeof(dev->desc), &dev->desc );
     
     if (retval < 0)
 	{
-        ehci_dbg("unable to get device desc...\n");
+        ehci_dbg("EHCI:unable to get device desc...\n");
         return retval;
     }
 
     retval = ehci_control_message( dev, USB_CTRLTYPE_DIR_HOST2DEVICE, USB_REQ_SETADDRESS,port+1,0,0,0);
     if (retval < 0)
 	{
-        ehci_dbg("unable to set device addr...\n");
+        ehci_dbg("EHCI:unable to set device addr...\n");
         return retval;
     }
     dev->toggles = 0;
 
     dev->id = port+1;
-    ehci_dbg ( "device %d: %X %X...\n", dev->id,le16_to_cpu(dev->desc.idVendor),le16_to_cpu(dev->desc.idProduct));
+    ehci_dbg ( "EHCI:device %d: %X %X...\n", dev->id,le16_to_cpu(dev->desc.idVendor),le16_to_cpu(dev->desc.idProduct));
     return retval;
 }
 int ehci_reset_device(struct ehci_device *dev)
@@ -779,7 +784,7 @@ int ehci_close_device(struct ehci_device *dev)
         for(i=0;i<ehci->num_port;i++)
         {
                 struct ehci_device *dev = &ehci->devices[i];
-                ehci_dbg ( "device %d:fd:%d %X %X...\n", dev->id,dev->fd,le16_to_cpu(dev->desc.idVendor),le16_to_cpu(dev->desc.idProduct));
+                ehci_dbg ( "EHCI:device %d:fd:%d %X %X...\n", dev->id,dev->fd,le16_to_cpu(dev->desc.idVendor),le16_to_cpu(dev->desc.idProduct));
                 if(dev->fd == fd){
                         return dev;
                 }
@@ -795,7 +800,7 @@ int ehci_get_device_list(u8 maxdev,u8 b0,u8*num,u16*buf)
         {
                 struct ehci_device *dev = &ehci->devices[i];
                 if(dev->id != 0){
-                        ehci_dbg ( "device %d: %X %X...\n", dev->id,le16_to_cpu(dev->desc.idVendor),le16_to_cpu(dev->desc.idProduct));
+                        ehci_dbg ( "EHCI:device %d: %X %X...\n", dev->id,le16_to_cpu(dev->desc.idVendor),le16_to_cpu(dev->desc.idProduct));
                         buf[j*4] = 0;
                         buf[j*4+1] = 0;
                         buf[j*4+2] = le16_to_cpu(dev->desc.idVendor);
@@ -803,7 +808,7 @@ int ehci_get_device_list(u8 maxdev,u8 b0,u8*num,u16*buf)
                         j++;
                 }
         }
-        ehci_dbg("found %d devices\n",j);
+        ehci_dbg("EHCI:found %d devices\n",j);
         *num = j;
         return 0;
 }

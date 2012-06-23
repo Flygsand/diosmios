@@ -21,7 +21,7 @@ void HeapInit( u8 *Offset )
 	while( HeapInfoEntries[0].Offset != 0 )
 	{
 		EXIControl(1);
-		dbgprintf("Failed to clear memory!:%08X", HeapInfoEntries[0].Offset );
+		dbgprintf("Alloc:Failed to clear memory!:%08X", HeapInfoEntries[0].Offset );
 		Shutdown();
 	}
 
@@ -59,7 +59,7 @@ void *malloc( u32 _size )
 		while(1);
 	}
 
-	dbgprintf("Using entry:%d to alloc %u(%u) bytes...\n", entry, size, _size );
+	//dbgprintf("Alloc:Using entry:%d to alloc %u(%u) bytes...\n", entry, size, _size );
 	
 	//Now we search a used entry
 	u32 used_entry = 0xdeadbeef;
@@ -177,7 +177,7 @@ find_space:
 	if( used_entry != 0xdeadbeef )
 		goto find_space;
 
-	dbgprintf("failed to alloc %d bytes\n", size );
+	dbgprintf("Alloc:failed to alloc %d bytes\n", size );
 
 	return NULL;
 }

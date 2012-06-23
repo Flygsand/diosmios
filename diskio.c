@@ -6,29 +6,38 @@ extern u32 IsInit;
 
 DSTATUS disk_initialize( BYTE drv )
 {
-	udelay( 50000 );
-
-	tiny_ehci_init();
-
-	int ret = -ENODEV;
-
-	do {
-
-		udelay( 4000 );
-		ret = ehci_discover();
-
-	} while( ret == -ENODEV );
-		
-	dbgprintf("ehci_discover():%d\n", ret );
-
-	s32 r = USBStorage_Init();
-	
+	s32 r, s_cnt;
 	u32 s_size;
-	u32 s_cnt = USBStorage_Get_Capacity(&s_size);
+
+	while( 1 )
+	{
+		udelay( 50000 );
+
+		tiny_ehci_init();
+
+		int ret = -ENODEV;
+
+		do {
+
+			udelay( 4000 );
+			ret = ehci_discover();
+
+		} while( ret == -ENODEV );
+		
+		dbgprintf("ehci_discover():%d\n", ret );
+
+		r = USBStorage_Init();
 	
+		if( r == 0 )
+			break;
+	}
+	
+	s_cnt = USBStorage_Get_Capacity( &s_size );
+
 	dbgprintf( "DIP: Drive size: %dMB SectorSize:%d\n", s_cnt / 1024 * s_size / 1024, s_size);
 	
 	return r;
+
 }
 
 DSTATUS disk_status( BYTE drv )

@@ -453,7 +453,9 @@ found:
 	else retval = USBSTORAGE_OK;
 
 free_and_return:
-	if(max_lun!=NULL) USB_Free(max_lun);
+	if(max_lun!=NULL)
+		USB_Free(max_lun);
+
 	if(retval < 0)
 	{
 		if(dev->buffer != NULL)
@@ -643,14 +645,14 @@ s32 USBStorage_Try_Device(struct ehci_device *fd)
 	int ret = USBStorage_Open(&__usbfd, fd);
 	if( ret < 0)
 	{
-		dbgprintf("Could not open USB device:%d\n",ret);
+		dbgprintf("USB:Could not open device:%d\n",ret);
 		return -EINVAL;
 	}
 
 	maxLun = USBStorage_GetMaxLUN(&__usbfd);
 	if(maxLun == USBSTORAGE_ETIMEDOUT)
 	{
-		dbgprintf("USB device timed out\n");
+		dbgprintf("USB:Device timed out\n");
 		return -EINVAL;
 	}
 
@@ -674,25 +676,33 @@ s32 USBStorage_Try_Device(struct ehci_device *fd)
 		return 0;
 	}
 
-	dbgprintf("USB device failed to mount\n");
+	dbgprintf("USB:Device failed to mount\n");
 	return -EINVAL;
 }
 
 static int ums_init_done = 0;
 s32 USBStorage_Init(void)
 {
+	s32 res = -ENODEV;
+
         int i;
         //debug_printf("usbstorage init %d\n", ums_init_done);
         if(ums_init_done)
           return 0;
-        ums_init_done = 1;
-        for(i = 0;i<ehci->num_port; i++){
-                struct ehci_device *dev = &ehci->devices[i];
-                if(dev->id != 0){
-                        USBStorage_Try_Device(dev);
-                }
+
+       
+        
+		for(i = 0;i<ehci->num_port; i++)
+		{
+            struct ehci_device *dev = &ehci->devices[i];
+            if(dev->id != 0)
+			{
+                    res = USBStorage_Try_Device(dev);
+					if( res == 0 )
+						 ums_init_done = 1;
+            }
         }
-        return 0;
+        return res;
 }
 
 s32 USBStorage_Get_Capacity(u32*sector_size)

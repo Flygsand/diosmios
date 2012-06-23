@@ -32,7 +32,7 @@ s32 USB_GetDescriptors(struct ehci_device * fd, usb_devdesc *udd)
 	retval = __usb_getdesc(fd, buffer, USB_DT_DEVICE, 0, USB_DT_DEVICE_SIZE);
 	if(retval < 0)
 	{
-		dbgprintf("__usb_getdesc():%d failed\n", retval );
+		dbgprintf("USB:__usb_getdesc():%d failed\n", retval );
 		goto free_and_error;
 	}
 
@@ -50,7 +50,7 @@ s32 USB_GetDescriptors(struct ehci_device * fd, usb_devdesc *udd)
 	//udd->configurations = USB_Alloc(udd->bNumConfigurations* sizeof(*udd->configurations));
 	if( _ptr == 0)
 	{
-		dbgprintf("USB_Alloc():failed:%u\n", __LINE__ );
+		dbgprintf("USB:USB_Alloc():failed:%u\n", __LINE__ );
 		retval = -ENOMEM;
 		goto free_and_error;
 	}
@@ -99,12 +99,14 @@ s32 USB_GetDescriptors(struct ehci_device * fd, usb_devdesc *udd)
 		//if(ucd->interfaces == NULL)
 		//	goto free_and_error;
 
-		_ptr = (u32)USB_Alloc(ucd->bNumInterfaces* sizeof(*ucd->interfaces));
-		if( _ptr == 0 )
+		
+
+		u32 _ptrB = (u32)USB_Alloc(ucd->bNumInterfaces* sizeof(*ucd->interfaces));
+		if( _ptrB == 0 )
 			goto free_and_error;
 
-		_ucd[2] = ( ucd->bMaxPower << 24 ) | (_ptr>>8);
-		_ucd[3] = ((_ptr & 0xFF) << 24) | (_ucd[3]&0xFFFFFF);
+		_ucd[2] = ( ucd->bMaxPower << 24 ) | (_ptrB>>8);
+		_ucd[3] = ((_ptrB & 0xFF) << 24) | (_ucd[3]&0xFFFFFF);
 		
 		//dbgprintf("ucd->interfaces:%p\n", ucd->interfaces );
 		memset( ucd->interfaces, 0, ucd->bNumInterfaces * sizeof(*ucd->interfaces) );
@@ -120,10 +122,10 @@ s32 USB_GetDescriptors(struct ehci_device * fd, usb_devdesc *udd)
 			//	goto free_and_error;
 
 			u32 *_uid = (u32*)uid;
-			_ptr = (u32)USB_Alloc(uid->bNumEndpoints* sizeof(*uid->endpoints));
+			u32 _ptrC = (u32)USB_Alloc(uid->bNumEndpoints* sizeof(*uid->endpoints));
 
-			_uid[2] = (uid->iInterface<<24) | (_ptr >> 8);
-			_uid[3] = (_ptr<<24) | (_uid[3]&0xFFFFFF);
+			_uid[2] = (uid->iInterface<<24) | (_ptrC >> 8);
+			_uid[3] = (_ptrC<<24) | (_uid[3]&0xFFFFFF);
 			
 			memset( uid->endpoints, 0, uid->bNumEndpoints * sizeof(*uid->endpoints) );
 
@@ -137,18 +139,27 @@ s32 USB_GetDescriptors(struct ehci_device * fd, usb_devdesc *udd)
 				u32 *_ued = (u32*)ued;
 				_ued[1] = (cpu_to_le16(ued->wMaxPacketSize) << 16 ) | (_ued[1] & 0xFFFF);
 			}
-		}
 
+			USB_Free((void*)_ptrC);
+		}
+		
+		USB_Free((void*)_ptrB);
+		
 		USB_Free( buffer);
 		buffer = (u8*)NULL;
 	}
 	retval = 0;
 
 free_and_error:
+	if( _ptr != 0 )
+		USB_Free((void*)_ptr);
+
 	if(buffer != NULL)
 		USB_Free(buffer);
+
 	if(retval < 0)
 		USB_FreeDescriptors(udd);
+
 	return retval;
 }
 
