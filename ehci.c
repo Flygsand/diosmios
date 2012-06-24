@@ -180,7 +180,7 @@ static int handshake (void __iomem *ptr,
 		usec--;
 	} while (usec > 0);
 
-        ehci_dbg("\nEHCI:handshake timeout!!\n\n");
+        ehci_dbg("EHCI:handshake timeout!!\n");
         dump_qh(ehci->async);
         dump_qh(ehci->asyncqh);
         //BUG();
@@ -664,12 +664,26 @@ int ehci_reset_port(int port)
     struct ehci_device *dev = &ehci->devices[port];
     u32 status = ehci_readl(status_reg);
     int retval = 0;
-    dev->id = 0;
+
+	dev->id = 0;
+
     if ((PORT_OWNER&status) || !(PORT_CONNECT&status))
     {
-		ehci_writel( PORT_OWNER, status_reg);
-		//ehci_dbg ( "port %d had no usb2 device connected at startup %X \n", port,ehci_readl(status_reg));
-		return -ENODEV;// no USB2 device connected
+		int retries = 10;
+		while (!(PORT_CONNECT&status) && retries > 0)
+		{
+		    msleep(1000);  // sleep 1 second
+		    status = ehci_readl(status_reg);
+		    ehci_dbg ( "EHCI:port %d status at retry %d %X \n", port,retries,status);
+		    retries--;
+		}
+
+		if( retries <= 0 )
+		{
+			ehci_writel( PORT_OWNER, status_reg);
+			ehci_dbg ( "EHCI:port %d had no usb2 device connected at startup %X \n", port,ehci_readl(status_reg) );
+			return -ENODEV;// no USB2 device connected
+		}
     }
 
     ehci_dbg ( "EHCI:port %d has usb2 device connected! reset it...\n", port);
