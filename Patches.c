@@ -408,11 +408,9 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 		write32(0x00003194, 0x48000028);
 	}
 	
-
 	// Reset Found
 	for( k=0; k < sizeof(FPatterns)/sizeof(FuncPattern); ++k )
-		FPatterns[k].Found = 0;
-	
+		FPatterns[k].Found = 0;	
 	
 	if( ConfigGetConfig(DML_CFG_NMM) )
 		DoCardPatches( ptr, size, SectionOffset );
@@ -633,39 +631,7 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 			PatchCount |= 8;
 		}
 
-		if( (PatchCount & 32) == 0 )
-		{
-			if( (read32( (u32)ptr + i + 0 ) & 0xFFFF) == 0xCC00 &&			// Game
-				(read32( (u32)ptr + i + 4 ) & 0xFFFF) == 0x6000 &&
-				(read32( (u32)ptr + i +12 ) & 0xFFFF) == 0x001C 
-				) 
-			{
-				u32 Offset = (u32)ptr + i;
-
-				dbgprintf("Patch:[cbForStateBusy] 0x%08X\n", Offset + SectionOffset );
-
-				write32( Offset, 0x3C80C000 );
-				write32( Offset+4, 0x38842F30 );
-		
-				PatchCount |= 32;
-
-			} else if(	(read32( (u32)ptr + i + 0 ) & 0xFFFF) == 0xCC00 && // Loader
-						(read32( (u32)ptr + i + 4 ) & 0xFFFF) == 0x6018 &&
-						(read32( (u32)ptr + i +12 ) & 0xFFFF) == 0x001C 
-				)
-			{
-				u32 Offset = (u32)ptr + i;
-
-				dbgprintf("Patch:[cbForStateBusy] 0x%08X\n", Offset + SectionOffset );
-
-				write32( Offset, 0x3C60C000 );
-				write32( Offset+4, 0x80832F48 );
-		
-				PatchCount |= 32;
-				
-			}
-		}
-
+		if( (PatchCount & 16) == 0 )
 		if( ConfigGetConfig(DML_CFG_CHEATS) || ConfigGetConfig( DML_CFG_DEBUGGER ) )
 		{
 			// OSSleepThread(Pattern 1)
@@ -741,6 +707,39 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 				free(path);
 
 				PatchCount |= 16;
+			}
+		}
+
+		if( (PatchCount & 32) == 0 )
+		{
+			if( (read32( (u32)ptr + i + 0 ) & 0xFFFF) == 0xCC00 &&			// Game
+				(read32( (u32)ptr + i + 4 ) & 0xFFFF) == 0x6000 &&
+				(read32( (u32)ptr + i +12 ) & 0xFFFF) == 0x001C 
+				) 
+			{
+				u32 Offset = (u32)ptr + i;
+
+				dbgprintf("Patch:[cbForStateBusy] 0x%08X\n", Offset + SectionOffset );
+
+				write32( Offset, 0x3C80C000 );
+				write32( Offset+4, 0x38842F30 );
+		
+				PatchCount |= 32;
+
+			} else if(	(read32( (u32)ptr + i + 0 ) & 0xFFFF) == 0xCC00 && // Loader
+						(read32( (u32)ptr + i + 4 ) & 0xFFFF) == 0x6018 &&
+						(read32( (u32)ptr + i +12 ) & 0xFFFF) == 0x001C 
+				)
+			{
+				u32 Offset = (u32)ptr + i;
+
+				dbgprintf("Patch:[cbForStateBusy] 0x%08X\n", Offset + SectionOffset );
+
+				write32( Offset, 0x3C60C000 );
+				write32( Offset+4, 0x80832F48 );
+		
+				PatchCount |= 32;
+				
 			}
 		}
 
