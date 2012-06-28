@@ -176,6 +176,19 @@ u32 DIUpdateRegisters( void )
 									if( DOLMaxOff < dol->addressText[i] + dol->sizeText[i] )
 										DOLMaxOff = dol->addressText[i] + dol->sizeText[i];
 								}
+
+								for( i=0; i < 11; ++i )
+								{
+									if( dol->addressData[i] == 0 )
+										continue;
+
+									if( DOLMinOff > dol->addressData[i])
+										DOLMinOff = dol->addressData[i];
+
+									if( DOLMaxOff < dol->addressData[i] + dol->sizeData[i] )
+										DOLMaxOff = dol->addressData[i] + dol->sizeData[i];
+								}
+
 								DOLMinOff -= 0x80000000;
 								DOLMaxOff -= 0x80000000;								
 
