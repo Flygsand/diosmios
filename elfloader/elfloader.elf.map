@@ -1,0 +1,168 @@
+Archive member included because of file (symbol)
+
+e:/devkitpro/devkitarm/bin/../lib/gcc/arm-eabi/4.6.1/be\libgcc.a(_udivsi3.o)
+                              utils.o (__aeabi_uidiv)
+e:/devkitpro/devkitarm/bin/../lib/gcc/arm-eabi/4.6.1/be\libgcc.a(_dvmd_tls.o)
+                              e:/devkitpro/devkitarm/bin/../lib/gcc/arm-eabi/4.6.1/be\libgcc.a(_udivsi3.o) (__aeabi_idiv0)
+
+Discarded input sections
+
+ .text          0x00000000        0x0 start.o
+ .data          0x00000000        0x0 start.o
+ .bss           0x00000000        0x0 start.o
+ .text          0x00000000        0x0 stub.o
+ .data          0x00000000        0x0 stub.o
+ .bss           0x00000000        0x0 stub.o
+ .text          0x00000000        0x0 string.o
+ .data          0x00000000        0x0 string.o
+ .bss           0x00000000        0x0 string.o
+ .text.strnlen  0x00000000       0x2c string.o
+ .text.strlen   0x00000000       0x20 string.o
+ .text.strncpy  0x00000000       0x4c string.o
+ .text.strcpy   0x00000000       0x18 string.o
+ .text.strcmp   0x00000000       0x28 string.o
+ .text.strncmp  0x00000000       0x48 string.o
+ .text.memset   0x00000000       0x1c string.o
+ .text.strchr   0x00000000       0x28 string.o
+ .text          0x00000000        0x0 utils.o
+ .data          0x00000000        0x0 utils.o
+ .bss           0x00000000        0x0 utils.o
+ .data          0x00000000        0x0 e:/devkitpro/devkitarm/bin/../lib/gcc/arm-eabi/4.6.1/be\libgcc.a(_udivsi3.o)
+ .bss           0x00000000        0x0 e:/devkitpro/devkitarm/bin/../lib/gcc/arm-eabi/4.6.1/be\libgcc.a(_udivsi3.o)
+ .data          0x00000000        0x0 e:/devkitpro/devkitarm/bin/../lib/gcc/arm-eabi/4.6.1/be\libgcc.a(_dvmd_tls.o)
+ .bss           0x00000000        0x0 e:/devkitpro/devkitarm/bin/../lib/gcc/arm-eabi/4.6.1/be\libgcc.a(_dvmd_tls.o)
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+                0x00000000                __base_addr = 0x0
+                0x00000000                . = __base_addr
+
+.header         0x00000000       0x10
+                0x00000000                __header = .
+                0x00000000        0x4 LONG 0x10 __code_start
+                0x00000004        0x4 LONG 0x4b0 __loader_size
+                0x00000008        0x4 LONG 0x0
+                0x0000000c        0x4 LONG 0x0
+                0x00000010                . = ALIGN (0x10)
+                0x00000010                __code_start = .
+
+.init           0x00000010       0xc8
+ *(.init)
+ .init          0x00000010       0xc8 start.o
+                0x00000010                _start
+                0x000000bc                debug_output
+                0x000000d8                . = ALIGN (0x4)
+
+.got            0x000000d8        0x0
+                0x000000d8                __got_start = .
+ *(.got.*)
+ *(.got)
+                0x000000d8                . = ALIGN (0x4)
+                0x000000d8                __got_end = .
+
+.text           0x000000d8      0x2d4
+ *(.text.*)
+ .text.disable_boot0
+                0x000000d8       0x1c stub.o
+ .text.mem_setswap
+                0x000000f4       0x1c stub.o
+ .text.loadelf  0x00000110       0x90 stub.o
+                0x00000110                loadelf
+ .text._main    0x000001a0       0x44 stub.o
+                0x000001a0                _main
+ .text.memcmp   0x000001e4       0x48 string.o
+                0x000001e4                memcmp
+ .text.udelay   0x0000022c       0x38 utils.o
+                0x0000022c                udelay
+ .text.panic    0x00000264       0x30 utils.o
+                0x00000264                panic
+ *(.gnu.warning)
+ *(.gnu.linkonce.t*)
+ *(.glue_7)
+ .glue_7        0x00000000        0x0 linker stubs
+ *(.glue_7t)
+ .glue_7t       0x00000000        0x0 linker stubs
+                0x00000294                . = ALIGN (0x4)
+ .text          0x00000294      0x114 e:/devkitpro/devkitarm/bin/../lib/gcc/arm-eabi/4.6.1/be\libgcc.a(_udivsi3.o)
+                0x00000294                __aeabi_uidiv
+                0x00000294                __udivsi3
+                0x00000388                __aeabi_uidivmod
+ .text          0x000003a8        0x4 e:/devkitpro/devkitarm/bin/../lib/gcc/arm-eabi/4.6.1/be\libgcc.a(_dvmd_tls.o)
+                0x000003a8                __aeabi_idiv0
+                0x000003a8                __aeabi_ldiv0
+                0x000003ac                __text_end = .
+
+.vfp11_veneer   0x000003ac        0x0
+ .vfp11_veneer  0x00000000        0x0 linker stubs
+
+.v4_bx          0x000003ac        0x0
+ .v4_bx         0x00000000        0x0 linker stubs
+
+.rodata         0x000003ac        0x8
+ *(.rodata)
+ *all.rodata*(*)
+ *(.roda)
+ *(.rodata.*)
+ .rodata.str1.1
+                0x000003ac        0x8 stub.o
+ *(.gnu.linkonce.r*)
+                0x000003b4                . = ALIGN (0x4)
+
+.data           0x000003b4        0x0
+ *(.data)
+ *(.data.*)
+ *(.gnu.linkonce.d*)
+                0x000003b4                . = ALIGN (0x4)
+
+.bss            0x000003b4        0xc
+                0x000003b4                __bss_start = .
+ *(.dynbss)
+ *(.gnu.linkonce.b*)
+ *(.bss*)
+ *(.sbss*)
+ *(COMMON)
+                0x000003c0                . = ALIGN (0x20)
+ *fill*         0x000003b4        0xc 00
+                0x000003c0                __bss_end = .
+                0x000003c0                __stack_end = __bss_end
+                0x000004c0                __stack_addr = (__bss_end + 0x100)
+                0x000004c0                __end = __stack_addr
+                0x000004b0                __loader_size = (__end - __code_start)
+                [0x000003c0]                PROVIDE (__stack_end, __stack_end)
+                [0x000004c0]                PROVIDE (__stack_addr, __stack_addr)
+                [0x000000d8]                PROVIDE (__got_start, __got_start)
+                [0x000000d8]                PROVIDE (__got_end, __got_end)
+                [0x000003b4]                PROVIDE (__bss_start, __bss_start)
+                [0x000003c0]                PROVIDE (__bss_end, __bss_end)
+LOAD start.o
+LOAD stub.o
+LOAD string.o
+LOAD utils.o
+LOAD e:/devkitpro/devkitarm/bin/../lib/gcc/arm-eabi/4.6.1/be\libgcc.a
+OUTPUT(elfloader.elf elf32-bigarm)
+
+.ARM.attributes
+                0x00000000       0x30
+ .ARM.attributes
+                0x00000000       0x24 start.o
+ .ARM.attributes
+                0x00000024       0x34 stub.o
+ .ARM.attributes
+                0x00000058       0x34 string.o
+ .ARM.attributes
+                0x0000008c       0x34 utils.o
+ .ARM.attributes
+                0x000000c0       0x1a e:/devkitpro/devkitarm/bin/../lib/gcc/arm-eabi/4.6.1/be\libgcc.a(_udivsi3.o)
+ .ARM.attributes
+                0x000000da       0x18 e:/devkitpro/devkitarm/bin/../lib/gcc/arm-eabi/4.6.1/be\libgcc.a(_dvmd_tls.o)
+
+.comment        0x00000000       0x22
+ .comment       0x00000000       0x22 stub.o
+                                 0x23 (size before relaxing)
+ .comment       0x00000000       0x23 string.o
+ .comment       0x00000000       0x23 utils.o
