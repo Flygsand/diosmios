@@ -42,44 +42,37 @@ static inline struct ehci_qtd * ehci_qtd_alloc(void)
 int ehci_mem_init (void)
 {
 	int i;
-	u32 ptr = 0x17FF000;
-//	ehci->periodic = ehci_maligned(DEFAULT_I_TDPS * sizeof(__le32),32,4096);
+	u32 ptr = 0x1800000 - DEFAULT_I_TDPS * sizeof(__le32);
 
 	ehci->periodic = (u32*)ptr;
-
 	ehci->periodic_dma = ehci_virt_to_dma(ehci->periodic);
 
 	for (i = 0; i < DEFAULT_I_TDPS; i++)
 		ehci->periodic[i] = EHCI_LIST_END();
 
-	ehci_writel(ehci->periodic_dma, &ehci->regs->frame_list);
+	ehci_writel( ehci->periodic_dma, &ehci->regs->frame_list );
 
 	for(i=0;i<EHCI_MAX_QTD;i++)
-	{
-//		ehci->qtds[i] = ehci_maligned(sizeof(struct ehci_qtd),32,4096);
-		
-		ptr -= sizeof(struct ehci_qtd);
+	{		
+		ptr			 -= sizeof(struct ehci_qtd);
 		ehci->qtds[i] = (struct ehci_qtd*)(ptr);
 	}
 
 	ehci->qtd_used = 0;
-//	ehci->asyncqh = ehci_maligned(sizeof(struct ehci_qh),32,4096);
 	
-	ptr -= sizeof(struct ehci_qh);
+	ptr			 -= sizeof(struct ehci_qh);
 	ehci->asyncqh = (struct ehci_qh*)ptr;
 
-	ehci->asyncqh->ehci = ehci;
-	ehci->asyncqh->qh_dma = ehci_virt_to_dma(ehci->asyncqh);
-	ehci->asyncqh->qtd_head = NULL;
-
-//	ehci->async = ehci_maligned(sizeof(struct ehci_qh),32,4096);
-	
-	ptr -= sizeof(struct ehci_qh);
+	ehci->asyncqh->ehci		= ehci;
+	ehci->asyncqh->qh_dma	= ehci_virt_to_dma(ehci->asyncqh);
+	ehci->asyncqh->qtd_head	= NULL;
+		
+	ptr		   -= sizeof(struct ehci_qh);
 	ehci->async = (struct ehci_qh*)ptr;
 
-	ehci->async->ehci = ehci;
-	ehci->async->qh_dma = ehci_virt_to_dma(ehci->async);
-	ehci->async->qtd_head = NULL;
+	ehci->async->ehci		= ehci;
+	ehci->async->qh_dma		= ehci_virt_to_dma(ehci->async);
+	ehci->async->qtd_head	= NULL;
 
-     return 0;
+	return 0;
 }

@@ -637,13 +637,13 @@ s32 ehci_bulk_message(struct ehci_device *dev,u8 bEndpoint,u16 wLength,void *rpD
 //	hexdump( urb.transfer_buffer, urb.transfer_buffer_length );
 	if( ((u32)rpData >> 28) == 0xF )
 	{
-		memcpy( (void*)0x1800, rpData, wLength );
+		memcpy( (void*)0xFE0, rpData, wLength );
 
-		urb.transfer_buffer = (u8*)0x1800;
+		urb.transfer_buffer = (u8*)0xFE0;
 	
 		ret = ehci_do_urb( dev, &urb );
 
-		memcpy( rpData, (void*)0x1800, wLength );
+		memcpy( rpData, (void*)0xFE0, wLength );
 		
 	} else {
 		ret = ehci_do_urb( dev, &urb );
