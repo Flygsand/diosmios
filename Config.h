@@ -44,7 +44,7 @@ typedef struct GC_SRAM
 typedef struct DML_CFG 
 {
 	u32		Magicbytes;		// 0xD1050CF6
-	u32		Version;		// 0x00000001
+	u32		Version;		// 0x00000002
 	u32		VideoMode;
 	u32		Config;
 	char	GamePath[255];
@@ -62,9 +62,9 @@ enum dmlconfig
 	DML_CFG_CHEAT_PATH	= (1<<6),
 	DML_CFG_ACTIVITY_LED= (1<<7),
 	DML_CFG_PADHOOK		= (1<<8),
-	DML_CFG_NODISC		= (1<<9),
+	DML_CFG_FORCE_WIDE	= (1<<9),
 	DML_CFG_BOOT_DISC	= (1<<10),
-	DML_CFG_BOOT_DOL	= (1<<11),
+	DML_CFG_BOOT_DISC2	= (1<<11),
 };
 
 enum dmlvideomode

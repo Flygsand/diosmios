@@ -16,6 +16,8 @@ u32 DOLOffset		= 0;
 s32 ELFNumberOfSections = 0;
 u32 FSTMode			= 0;
 
+extern DML_CFG *DMLCfg;
+
 FIL GameFile;
 u32 read;
 u32 DiscRead=0;
@@ -46,8 +48,9 @@ void DIInit( void )
 u32 DIUpdateRegisters( void )
 {	
 	u32 read,i,j;
-	static u32 PatchState = 0;
-	static u32 DOLReadSize= 0;
+	static u32 PatchState	= 0;
+	static u32 DOLReadSize	= 0;
+	static u32 PSOHack		= 0;
 	
 	if( read32(DI_CONTROL) != 0xdeadbeef )
 	{
@@ -145,9 +148,30 @@ u32 DIUpdateRegisters( void )
 						DoPatches( (char*)(0x01300000), Length, 0x80000000 );
 					}
 
+					// PSO 1&2
+					if( (read32(0) >> 8) == 0x47504F )
+					{
+						switch( Offset )
+						{
+							case 0x56B8E7E0:	// AppSwitcher	[EUR]
+							case 0x56C49600:	// [USA]
+							{
+								DMLCfg->Config &= ~(DML_CFG_CHEATS|DML_CFG_PADHOOK|DML_CFG_DEBUGGER|DML_CFG_DEBUGWAIT);
+
+								DoPatches( (char*)Buffer, Length, 0x80000000 );
+
+							} break;
+							case 0x5668FE20:	// psov3.dol [EUR]
+							case 0x56750660:	// [USA]
+							{
+								PSOHack = 1;
+							} break;
+						}
+					}
+
 					if( PatchState == 0 )
 					{
-						if( Length == 0x100 )
+						if( Length == 0x100 || PSOHack )
 						{
 							if( read32( (u32)Buffer ) == 0x100 )
 							{
@@ -160,7 +184,7 @@ u32 DIUpdateRegisters( void )
 								for( i=0; i < 11; ++i )
 									DOLSize += dol->sizeData[i];
 						
-								DOLReadSize = sizeof(dolhdr);
+								DOLReadSize = Length;
 
 								DOLMinOff=0x81800000;
 								DOLMaxOff=0;
@@ -190,80 +214,81 @@ u32 DIUpdateRegisters( void )
 								}
 
 								DOLMinOff -= 0x80000000;
-								DOLMaxOff -= 0x80000000;								
+								DOLMaxOff -= 0x80000000;	
+
+								if( PSOHack )
+								{
+									DOLMinOff = Buffer;
+									DOLMaxOff = Buffer + DOLSize;
+								}
 
 								dbgprintf("DIP:DOLSize:%d DOLMinOff:0x%08X DOLMaxOff:0x%08X\n", DOLSize, DOLMinOff, DOLMaxOff );
 
 								PatchState = 1;
 							}
+						
+							PSOHack = 0;
+
 						} else if( read32(Buffer) == 0x7F454C46 )
 						{
-							if (getfilenamebyoffset(Offset) != NULL)
-							{
-								dbgprintf("DIP:The Game is loading %s\n", getfilenamebyoffset(Offset));
-							} else
-							{
-								dbgprintf("DIP:The Game is loading some .elf that is not in the fst...\n");
-							}
-							for (i = ((*(u32 *)0x00000038) & ~0x80000000) + 16; i < 0x01800000; i+=12)	// Search the fst for the dvd offset of the .elf file
-							{
-								if (*(u32 *)i == Offset)
-								{
-									DOLSize = *(u32 *)(i+4);
-									DOLReadSize = Length;
+							dbgprintf("DIP:Game is loading an ELF 0x%08x\n", Offset );
 
-									if( DOLReadSize == DOLSize )	// The .elf is read completely already
-									{
-										dbgprintf("DIP:The .elf is read completely, file size: %u bytes\n", DOLSize);
-										DoPatches( (char*)(Buffer), Length, 0x80000000 );
-									} else							// a part of the .elf is read
-									{
-										PatchState = 2;
-										DOLMinOff=Buffer;
-										DOLMaxOff=Buffer+Length;
-										if (Length <= 4096) // The .elf header is read
-										{
-											ELFNumberOfSections = read16(Buffer+0x2c) -2;	// Assume that 2 sections are .bss and .sbss which are not read
-											dbgprintf("DIP:The .elf header is read(%u bytes), .elf file size: %u bytes, number of sections to load: %u\n", Length, DOLSize, ELFNumberOfSections);
-										} else				// The .elf is read into a buffer
-										{
-											ELFNumberOfSections = -1;						// Make sure that ELFNumberOfSections == 0 does not become true
-											dbgprintf("DIP:The .elf is read into a buffer, read progress: %u/%u bytes\n", Length, DOLSize);
-										}
-									}
-									break;
+							DOLOffset = Offset;
+							DOLSize	  = 0;
+
+							if( Length > 0x1000 )
+							{
+								DOLReadSize = Length;
+								DoPatches( (char*)(Buffer), Length, 0x80000000 );								
+							} else
+								DOLReadSize = 0;
+
+							Elf32_Ehdr *ehdr = (Elf32_Ehdr*)Buffer;
+							dbgprintf("DIP:ELF Programheader Entries:%u\n", ehdr->e_phnum );							
+
+							for( i=0; i < ehdr->e_phnum; ++i )
+							{
+								Elf32_Phdr phdr;
+
+								if( FSTMode )
+								{
+									FSTRead( (char*)&phdr, sizeof(Elf32_Phdr), DOLOffset + ehdr->e_phoff + i * sizeof(Elf32_Phdr) );
+
+								} else {
+									
+									f_lseek( &GameFile, DOLOffset + ehdr->e_phoff + i * sizeof(Elf32_Phdr) );
+									f_read( &GameFile, &phdr, sizeof(Elf32_Phdr), &read );
 								}
+
+								DOLSize += (phdr.p_filesz+31) & (~31);	// align by 32byte
 							}
+
+							dbgprintf("DIP:ELF size:%u\n", DOLSize );
+
+							PatchState = 2;
 						}
 
-					} else if ( PatchState != 0 )
+					} else if ( PatchState == 1 )
 					{
 						DOLReadSize += Length;
-						
-						if (PatchState == 2)
-						{
-							ELFNumberOfSections--;
-							
-							// DOLMinOff and DOLMaxOff are optimised when loading .dol files
-							if (DOLMinOff > Buffer)
-								DOLMinOff = Buffer;
-								
-							if (DOLMaxOff < Buffer+Length)
-								DOLMaxOff = Buffer+Length;
-							
-							if (ELFNumberOfSections < 0)
-							{
-								dbgprintf("DIP:.elf read progress: %u/%u bytes\n", DOLReadSize, DOLSize);
-							} else
-							{
-								dbgprintf("DIP:.elf read progress: %u/%u bytes, sections left: %u\n", DOLReadSize, DOLSize, ELFNumberOfSections);
-							}
-						}
-
-						//dbgprintf("DIP:DOLSize:%d DOLReadSize:%d\n", DOLSize, DOLReadSize );
-						if( DOLReadSize >= DOLSize || (PatchState == 2 && ELFNumberOfSections == 0))
+						//dbgprintf("DIP:DOL ize:%d DOL read:%d\n", DOLSize, DOLReadSize );
+						if( DOLReadSize >= DOLSize )
 						{
 							DoPatches( (char*)(DOLMinOff), DOLMaxOff-DOLMinOff, 0x80000000 );
+							PatchState = 0;
+						}
+
+					} else if ( PatchState == 2 )
+					{
+						DoPatches( (char*)(Buffer), Length, 0x80000000 );
+
+						if( Buffer > DOLMaxOff )
+							DOLMaxOff = Buffer;
+						
+						DOLReadSize += Length;
+						//dbgprintf("DIP:ELF size:%d ELF read:%d\n", DOLSize, DOLReadSize );
+						if( DOLReadSize >= DOLSize )
+						{
 							PatchState = 0;
 						}
 					}

@@ -362,39 +362,8 @@ void GeckoSendBuffer( char *buffer )
 	return;
 }
 
-extern FIL Log;
-
-static char buffer[128] ALIGNED(32);
 int dbgprintf( const char *fmt, ...)
 {
-	va_list args;
-	
-	va_start(args, fmt);
-	vsprintf(buffer, fmt, args);
-	va_end(args);
-
-	//u32 cokie = read32( 0x0D800070 );
-	//set32(0x0D800070,1);
-
-	if( read32( 0x0D800070 ) & 1 )
-	{
-		GeckoSendBuffer( buffer );
-	}/* else {
-		u32 read;
-		u32 fres = f_open( &Log, "/dm.log", FA_READ|FA_WRITE|FA_OPEN_ALWAYS );
-		if( fres != FR_OK )
-		{
-			write32( 0x0D800070, 1 );
-			dbgprintf("f_open():%d\n", fres );
-		}
-
-		f_lseek( &Log, Log.fsize );
-		f_write( &Log, buffer, strlen(buffer), &read );
-		f_close( &Log );
-	}*/
-
-	//write32( 0x0D800070, cokie );
-
 	return 1;
 }
 

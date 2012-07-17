@@ -12,6 +12,7 @@
 #include "vsprintf.h"
 #include "Config.h"
 #include "DVD.h"
+#include "elf.h"
 
 enum opcodes
 {

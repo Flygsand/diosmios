@@ -122,7 +122,6 @@ void SysShutdown( void )
 }
 
 u32 fail;
-FIL Log;
 
 int main( int argc, char *argv[] )
 {

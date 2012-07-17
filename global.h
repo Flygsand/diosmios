@@ -15,7 +15,7 @@
 #define PADHOOK 1
 
 #define CONFIG_VERSION	0x00000001
-#define DM_VERSION		0x00020000
+#define DM_VERSION		0x00020001
 
 #define	DI_SUCCESS	1
 #define	DI_ERROR	2

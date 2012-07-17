@@ -114,11 +114,22 @@ u8 GXMObjects[][0x3C] =
 	},
 };
 
+u32 DVDGetDriveStatus[] = {
+        0x38600000,     //  li          r3, 0
+        0x4E800020
+};
+
 FuncPattern FPatterns[] =
 {
 	{ 0xCC,			17,     10,     5,      3,      2,	DVDInquiryAsync,			sizeof(DVDInquiryAsync),		"DVDInquiryAsync",				0,		0 },
 	{ 0xC8,			16,     9,      5,      3,      3,	DVDSeekAbsAsyncPrio,		sizeof(DVDSeekAbsAsyncPrio),	"DVDSeekAbsAsyncPrio",			0,		0 },
+	{ 0xA8,			10,     4,      4,      6,      3,	(u8*)DVDGetDriveStatus,		sizeof(DVDGetDriveStatus),		"DVDGetDriveStatus",			0,		0 },
 	{ 0xD4,			13,     8,      11,     2,      7,	(u8*)NULL,					0xdead0004,						"AIResetStreamSampleCount",		0,		0 },
+
+	{ 0x10C,        30,     18,     5,      2,      3,	(u8*)NULL,					0xdead0002,						"DVDLowRead A",					0,		0 },
+	{ 0xDC,			23,     18,     3,      2,      4,	(u8*)NULL,					0xdead0002,						"DVDLowRead B",					0,		0 },
+	
+	{ 0xCC,			3,		3,		1,		0,		3,	(u8*)NULL,					0xdead000C,						"C_MTXPerspective",				0,		0 },
 
 	{ 0x94, 		18, 	10, 	2, 		0, 		2,	(u8*)__dvdLowReadAudioNULL, sizeof(__dvdLowReadAudioNULL), "DVDLowReadAudio", 				0, 		0 },
 	{ 0x88, 		18, 	8, 		2, 		0, 		2,	(u8*)__dvdLowAudioStatusNULL, sizeof(__dvdLowAudioStatusNULL), "DVDLowAudioStatus", 		0, 		0 },
@@ -198,6 +209,65 @@ void PatchBL( u32 dst, u32 src )
 	newval&= 0x03FFFFFC;
 	newval|= 0x48000001;
 	write32( src, newval );	
+}
+void PatchFunc( char *ptr )
+{
+	u32 i	= 0;
+	u32 reg=-1;
+
+	while(1)
+	{
+		u32 op = read32( (u32)ptr + i );
+
+		if( op == 0x4E800020 )	// blr
+			break;
+
+		if( (op & 0xFC00FFFF) == 0x3C00CC00 )	// lis rX, 0xCC00
+		{
+			reg = (op & 0x3E00000) >> 21;
+			
+			write32( (u32)ptr + i, (reg<<21) | 0x3C00C000 );	// Patch to: lis rX, 0xC000
+			dbgprintf("[%08X] %08X: lis r%u, 0xC000\n", (u32)ptr+i, read32( (u32)ptr+i), reg );
+		}
+		
+		if( (op & 0xFC00FFFF) == 0x3C00A800 )	// lis rX, 0xA800
+		{			
+			write32( (u32)ptr + i, (op & 0x3E00000) | 0x3C00A700 );		// Patch to: lis rX, 0xA700
+			dbgprintf("[%08X] %08X: lis rX, 0xA700\n", (u32)ptr+i, read32( (u32)ptr+i) );
+		}
+
+		if( (op & 0xFC00FFFF) == 0x38006000 )	// addi rX, rY, 0x6000
+		{
+			u32 src = (op >> 16) & 0x1F;
+			u32 dst = (op >> 21) & 0x1F;
+
+			if( src == reg )
+			{
+				write32( (u32)ptr + i, (dst<<21) | (src<<16) | 0x38002F00 );	// Patch to: addi rX, rY, 0x2F00
+				dbgprintf("[%08X] %08X: addi r%u, r%u, 0x2F00\n", (u32)ptr+i, read32( (u32)ptr+i), dst, src );
+
+			}
+		}
+
+		if( (op & 0xFC000000 ) == 0x90000000 )
+		{
+			u32 src = (op >> 16) & 0x1F;
+			u32 dst = (op >> 21) & 0x1F;
+			u32 val = op & 0xFFFF;
+			
+			if( src == reg )
+			{
+				if( (val & 0xFF00) == 0x6000 )	// case with 0x60XY(rZ)
+				{
+					write32( (u32)ptr + i,  (dst<<21) | (src<<16) | 0x2F00 | (val&0xFF) | 0x90000000 );	// Patch to: stw rX, 0x2FXY(rZ)
+					dbgprintf("[%08X] %08X: stw r%u, 0x%04X(r%u)\n", (u32)ptr+i, read32( (u32)ptr+i), dst, 0x2F00 | (val&0xFF), src );
+				}
+			}
+			
+		}
+
+		i += 4;
+	}
 }
 void MPattern( u8 *Data, u32 Length, FuncPattern *FunctionPattern )
 {
@@ -453,126 +523,10 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 		DoCardPatches( ptr, size, SectionOffset );
 	
 //Note: ORing the values prevents an early break out when a single patterns has multiple hits
-	PatchCount=0;
+	PatchCount=1;
 	
 	for( i=0; i < size; i+=4 )
 	{
-		if( (PatchCount & 1) == 0 )
-		{
-			if( read32( (u32)ptr + i ) == 0x3C00A800 ) // Loader
-			{
-				int j=0;
-				while( read32( (u32)ptr + i - j ) != 0x7C0802A6 )	// Seek to start of function
-					j+=4;
-
-				//Check if there is a lis %rX, 0xCC00 in this function
-				//At least Sunshine has one false hit on lis r3,0xA800
-				int k=0;
-				while( 1 )
-				{
-					if( read32( (u32)ptr + i + k - j ) == 0x4E800020 )
-						break;
-
-					if( (read32( (u32)ptr + i + k - j ) & 0xF81FFFFF) == 0x3800CC00 )
-						break;					
-
-					k += 4;
-				}
-			
-				if( read32( (u32)ptr + i + k - j ) == 0x4E800020 )
-				{
-					//dbgprintf("Patch:No 0xCC00 found around:%08X\n", (u32)ptr+i);
-					continue;
-				}
-
-				k = 0;
-				while(1)
-				{
-					u32 val = read32( (u32)ptr + i + k );
-
-					if( (val & 0xFFFF ) == 0xCC00 )
-					{
-						write32( (u32)ptr + i + k, (val&0xFFFF0000) | 0xC000 );
-						//dbgprintf("Patch:lis 0x%08X\n", (u32)ptr + i + k + SectionOffset );
-						continue;
-					}
-
-					if( (val & 0xFC00FF00) == 0x90006000 )
-					{
-						write32( (u32)ptr + i + k, (val&0xFFFF00FF) | 0x2F00 );
-						//dbgprintf("Patch:stw 0x%08X\n", (u32)ptr + i + k + SectionOffset );
-						continue;
-					}
-
-					if( read32( (u32)ptr + i + k ) == 0x4E800020 )
-						break;
-
-					k+=4;
-				}
-
-				write32( (u32)ptr + i, 0x3C00A700 );
-				
-				dbgprintf("Patch:Found [DVDLowRead]: 0x%08X\n", (u32)ptr + i + SectionOffset );
-
-				PatchCount |= 1;
-
-			} else if( read32( (u32)ptr + i ) == 0x3C60A800 ) // Games
-			{
-				int j=0;
-				while( read32( (u32)ptr + i - j ) != 0x7C0802A6 )	// Seek to start of function
-					j+=4;
-
-				//Check if there is a lis %rX, 0xCC00 in this function
-				//At least Sunshine has one false hit on lis r3,0xA800
-				int k=0;
-				while( 1 )
-				{
-					if( read32( (u32)ptr + i + k - j ) == 0x4E800020 )
-						break;
-					if( (read32( (u32)ptr + i + k - j ) & 0xF81FFFFF) == 0x3800CC00 )
-					{
-						write32( (u32)ptr + i + k - j, (read32((u32)ptr + i + k - j) & 0xFFFF0000) | 0xC000 );
-						break;
-					}
-
-					k += 4;
-				}
-			
-				if( read32( (u32)ptr + i + k - j ) == 0x4E800020 )
-				{
-					//dbgprintf("Patch:No 0xCC00 found around:%08X\n", (u32)ptr+i);
-					continue;
-				}
-
-				//Search addi 0x6000
-				while( 1 )
-				{
-					if( read32( (u32)ptr + i + k - j ) == 0x4E800020 )
-						break;
-					if( (read32( (u32)ptr + i + k - j ) & 0xFFFF) == 0x6000 )
-					{
-						write32( (u32)ptr + i + k - j, (read32((u32)ptr + i + k - j) & 0xFFFF0000) | 0x2F00 );
-						break;
-					}
-
-					k += 4;
-					
-				}
-
-				if( read32( (u32)ptr + i + k - j ) == 0x4E800020 )
-				{
-					//dbgprintf("Patch:No 0xCC00 found around:%08X\n", (u32)ptr+i);
-					continue;
-				}
-
-				write32( (u32)ptr + i, 0x3C60A700 );
-				
-				dbgprintf("Patch:Found [DVDLowRead]: 0x%08X\n", (u32)ptr + i + SectionOffset );
-
-				PatchCount |= 1;
-			}
-		}
-
 		if( (PatchCount & 2) == 0 )
 		if( (read32( (u32)ptr + i )&0xFC00FFFF) == 0x5400077A &&
 			(read32( (u32)ptr + i + 4 )&0xFC00FFFF) == 0x28000000 &&
@@ -847,19 +801,6 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 
 				switch( FPatterns[j].PatchLength )
 				{
-					case 0xdead0004:	// Audiostreaming hack
-					{
-						switch( read32(0) >> 8 )
-						{
-							case 0x474544:	// Eternal Darkness
-							break;
-							default:
-							{
-								write32( FOffset + 0xB4, 0x60000000 );
-								write32( FOffset + 0xC0, 0x60000000 );
-							} break;
-						}
-					} break;
 					case 0xdead0001:	// Patch for __GXSetVAT, fixes the dungeon map freeze in Wind Waker
 					{
 						switch( read32(0) >> 8 )
@@ -879,6 +820,23 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 							break;
 						}			
 					} break;
+					case 0xdead0002:	// DVDLowRead
+					{
+						PatchFunc( (char*)FOffset );
+					} break;
+					case 0xdead0004:	// Audiostreaming hack
+					{
+						switch( read32(0) >> 8 )
+						{
+							case 0x474544:	// Eternal Darkness
+							break;
+							default:
+							{
+								write32( FOffset + 0xB4, 0x60000000 );
+								write32( FOffset + 0xC0, 0x60000000 );
+							} break;
+						}
+					} break;
 					case 0xdead000B:	//	PADRead hook
 					{				
 						//Find blr
@@ -897,6 +855,22 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 						PatchB( 0x2EE0, FOffset + j );
 						write32( 0x12FC, 0 );
 	
+					} break;
+					case 0xdead000C:	// Widescreen hack by Extrems
+					{
+						if( !ConfigGetConfig(DML_CFG_FORCE_WIDE) )
+							break;
+
+						dbgprintf("Patch:[MTXPerspectiveSig] 0x%08X \n", (u32)FOffset);
+
+						*(volatile float *)0x00000050 = 0.5625f;
+						memcpy((void*)(FOffset+ 28),(void*)(FOffset+ 36),44);
+						memcpy((void*)(FOffset+188),(void*)(FOffset+192),16);
+						*(unsigned int*)(FOffset+52) = 0x48000001 | ((*(unsigned int*)(FOffset+52) & 0x3FFFFFC) + 8);
+						*(unsigned int*)(FOffset+72) = 0x3C600000 | (0x80000050 >> 16);			// lis		3, 0x8180
+						*(unsigned int*)(FOffset+76) = 0xC0230000 | (0x80000050 & 0xFFFF);	// lfs		1, -0x1C (3)
+						*(unsigned int*)(FOffset+80) = 0xEC240072; // fmuls	1, 4, 1
+
 					} break;
 					default:
 					{
