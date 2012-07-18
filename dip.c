@@ -44,6 +44,8 @@ void DIInit( void )
 
 	write32( DI_SCONFIG, 0xFF );
 	write32( DI_SCOVER, 0 );
+
+	write32( HW_TIMER, 0 );
 }
 u32 DIUpdateRegisters( void )
 {	
@@ -307,7 +309,9 @@ u32 DIUpdateRegisters( void )
 						write32( HW_ARMIRQFLAG, read32(HW_ARMIRQFLAG) );
 						set32( 0x0d80000C, (1<<2) );	
 					}
-					
+
+					write32( HW_TIMER, 0 );
+										
 				} break;
 				default:
 				{
@@ -324,6 +328,13 @@ u32 DIUpdateRegisters( void )
 		} else {
 			;//dbgprintf("DIP:DI_CONTROL:%08X:%08X\n", read32(DI_CONTROL), read32(DI_CONTROL) );
 		}
+	}
+
+	if( (u64)read32(HW_TIMER) >= 2 * 60 * 243000000LL / 128 )
+	{
+		USBStorage_Read_Sectors( 23, 1, (void*)0x1000 );
+
+		write32( HW_TIMER, 0 );
 	}
 
 	return 0;
