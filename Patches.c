@@ -839,6 +839,9 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 					} break;
 					case 0xdead000B:	//	PADRead hook
 					{				
+						if( !ConfigGetConfig(DML_CFG_PADHOOK) )
+							break;
+
 						//Find blr
 
 						j=0;
