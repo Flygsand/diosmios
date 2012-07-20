@@ -115,7 +115,7 @@ u8 GXMObjects[][0x3C] =
 };
 
 u32 DVDGetDriveStatus[] = {
-        0x38600000,     //  li          r3, 0
+        0x38600000,     //  li		r3, 0
         0x4E800020
 };
 
@@ -128,6 +128,8 @@ FuncPattern FPatterns[] =
 
 	{ 0x10C,        30,     18,     5,      2,      3,	(u8*)NULL,					0xdead0002,						"DVDLowRead A",					0,		0 },
 	{ 0xDC,			23,     18,     3,      2,      4,	(u8*)NULL,					0xdead0002,						"DVDLowRead B",					0,		0 },
+	{ 0x104,        29,     17,     5,      2,      3,	(u8*)NULL,					0xdead0002,						"DVDLowRead C",					0,		0 },
+
 	
 	{ 0xCC,			3,		3,		1,		0,		3,	(u8*)NULL,					0xdead000C,						"C_MTXPerspective",				0,		0 },
 
@@ -880,6 +882,12 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 						if( ConfigGetConfig( DML_CFG_CHEATS ) )
 						{
 							if( FPatterns[j].Patch == patch_fwrite_GC )
+								break;
+						}
+
+						if( FPatterns[j].Patch == (u8*)DVDGetDriveStatus )
+						{
+							if( !ConfigGetConfig( DML_CFG_BOOT_NODISC ) )
 								break;
 						}
 
