@@ -887,7 +887,7 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 
 						if( FPatterns[j].Patch == (u8*)DVDGetDriveStatus )
 						{
-							if( !ConfigGetConfig( DML_CFG_BOOT_NODISC ) )
+							if( !ConfigGetConfig( DML_CFG_NODISC ) )
 								break;
 						}
 
