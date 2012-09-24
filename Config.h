@@ -3,7 +3,6 @@
 
 #include "string.h"
 #include "global.h"
-#include "ipc.h"
 #include "alloc.h"
 #include "vsprintf.h"
 #include "HW.h"

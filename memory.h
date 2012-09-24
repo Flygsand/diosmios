@@ -3,7 +3,6 @@
 
 #include "string.h"
 #include "global.h"
-#include "ipc.h"
 #include "utils.h"
 #include "hollywood.h"
 #include "vsprintf.h"

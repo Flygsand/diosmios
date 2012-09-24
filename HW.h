@@ -4,7 +4,6 @@
 #include "string.h"
 #include "global.h"
 #include "memory.h"
-#include "ipc.h"
 
 #include "alloc.h"
 #include "dip.h"

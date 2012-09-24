@@ -9,15 +9,15 @@ void ConfigInit( DML_CFG *Cfg )
 	memset32( DMLCfg, 0, sizeof(DML_CFG) );
 
 	//If a loader supplied any options we use them otherwise use the code defines
-	if( Cfg->Magicbytes == 0xD1050CF6 && Cfg->Version == CONFIG_VERSION )
+	if( Cfg->Magicbytes == 0xD1050CF6 )
 	{
 		memcpy( DMLCfg, Cfg, sizeof( DML_CFG ) );
 
 	} else {
 
-		dbgprintf("No config found in RAM\n");
+		dbgprintf("No valid config found in RAM\n");
 		dbgprintf("Version:%08X\n", DMLCfg->Version );
-		dbgprintf("Config:%08X\n", DMLCfg->Config );
+		dbgprintf("Config :%08X\n", DMLCfg->Config );
 		
 		DMLCfg->Config = 0;
 #ifdef CHEATHOOK
@@ -41,9 +41,9 @@ void ConfigInit( DML_CFG *Cfg )
 #ifdef PADHOOK
 		DMLCfg->Config |= DML_CFG_PADHOOK;
 #endif
-		DMLCfg->VideoMode	= DML_VID_DML_AUTO;
-		DMLCfg->Version		= CONFIG_VERSION;
 		DMLCfg->Magicbytes	= 0xD1050CF6;
+		DMLCfg->Version		= CONFIG_VERSION;
+		DMLCfg->VideoMode	= DML_VID_DML_AUTO;
 	}
 
 	//Check if a memcard is inserted in Slot A

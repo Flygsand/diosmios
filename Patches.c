@@ -887,8 +887,11 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 
 						if( FPatterns[j].Patch == (u8*)DVDGetDriveStatus )
 						{
-							if( !ConfigGetConfig( DML_CFG_NODISC ) )
+							if( (read32(0) >> 8) != 0x474754 &&	// Chibi-Robo!
+								(read32(0) >> 8) != 0x475041 )	// Pokémon Channel
 								break;
+
+							dbgprintf("Patch:DVDGetDriveStatus\n");
 						}
 
 						if( (FPatterns[j].Length >> 16) == 0xdead )

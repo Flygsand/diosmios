@@ -7,7 +7,6 @@ Copyright (C) 2010-2012  crediar
 */
 #include "string.h"
 #include "global.h"
-#include "ipc.h"
 #include "alloc.h"
 #include "ff.h"
 #include "diskio.h"
