@@ -71,7 +71,31 @@ void CardInit( void )
 
 	write32( 0x2FA0, 0 );
 }
+void LFNfy( char *str )
+{
+	u32 len = strlen(str);
+	u32 i;
 
+	for( i=0; i < len; ++i )
+	{
+		switch( str[i] )
+		{
+			case '\\':
+			case '/':
+			case '*':
+			case '|':
+			case '?':
+			case '<':
+			case '>':
+			case '\"':
+			case ':':
+				str[i] = ' ';
+			break;
+			default:
+				break;
+		}
+	}
+}
 s32 CardFindFreeEntry( void )
 {
 	CARDStat CStat;
@@ -127,6 +151,7 @@ s32 CardOpenFile( char *Filename, CARDFileInfo *CFInfo )
 		return -4;
 	}
 		
+	LFNfy( Filename );
 	fres = f_open( &savefile, Filename, FA_READ|FA_WRITE|FA_OPEN_EXISTING ) ;
 	switch( fres )
 	{
@@ -177,6 +202,7 @@ s32 CardFastOpenFile( u32 FileNo, CARDFileInfo *CFInfo )
 		return 0;
 	}
 		
+	LFNfy( CStat.fileName );
 	fres = f_open( &savefile, CStat.fileName, FA_READ|FA_WRITE|FA_OPEN_EXISTING ) ;
 	switch( fres )
 	{
@@ -332,7 +358,11 @@ void CardCreateFile( char *Filename, u32 Size, CARDFileInfo *CFInfo )
 	if( Slot < 0 )
 		return;
 		
-	fres = f_open( &savefile, Filename, FA_READ|FA_WRITE|FA_CREATE_NEW );
+	char FName[32];
+	memcpy( FName, Filename, 32 );
+
+	LFNfy( FName );
+	fres = f_open( &savefile, FName, FA_READ|FA_WRITE|FA_CREATE_NEW );
 	switch( fres )
 	{
 		case FR_EXIST:
@@ -406,7 +436,8 @@ void CardReadFile( u32 FileNo, u8 *Buffer, u32 Length, u32 Offset )
 
 	f_lseek( &CardStat, sizeof(CARDStat) * FileNo );
 	f_read( &CardStat, &CStat, sizeof(CARDStat), &read );
-
+	
+	LFNfy( CStat.fileName );
 	if( f_open( &savefile, CStat.fileName, FA_OPEN_EXISTING | FA_READ ) == FR_OK )
 	{
 		f_lseek( &savefile, Offset );
@@ -423,7 +454,8 @@ void CardWriteFile( u32 FileNo, u8 *Buffer, u32 Length, u32 Offset )
 
 	f_lseek( &CardStat, sizeof(CARDStat) * FileNo );
 	f_read( &CardStat, &CStat, sizeof(CARDStat), &read );
-
+	
+	LFNfy( CStat.fileName );
 	switch( f_open( &savefile, CStat.fileName, FA_OPEN_EXISTING | FA_WRITE ) )
 	{
 		case FR_OK:
@@ -523,6 +555,7 @@ void CardUpdateStats( CARDStat *CStat )
 void CARDUpdateRegisters( void )
 {
 	u32 read,i;
+	u32 CARDOK=0;
 
 	if( read32(CARD_CONTROL) != 0xdeadbeef )
 	{
@@ -590,19 +623,10 @@ void CARDUpdateRegisters( void )
 				
 #ifdef CARDDEBUG
 				dbgprintf("MC:CARDOpen( \"%s\", 0x%08x )", FileName, FInfo );
-#endif
-										
+#endif										
 				CardOpenFile( (char*)FileName, (CARDFileInfo*)FInfo );
 
-				while( read32(CARD_CONTROL) & 1 )
-					clear32( CARD_CONTROL, 1 );
-				
-				while( (read32(CARD_SSTATUS) & 0x10) != 0x10 )
-					set32( CARD_SSTATUS, 0x10 );
-				
-#ifdef CARDDEBUG
-				dbgprintf(":%d\n", read32( CARD_SRETURN ) );
-#endif
+				CARDOK = 1;
 			} break;
 			case 0xC1:
 			{
@@ -616,13 +640,7 @@ void CARDUpdateRegisters( void )
 				else
 					write32( CARD_SRETURN, 0 );
 
-				while( read32(CARD_SCONTROL) & 1 )
-					clear32( CARD_SCONTROL, 1 );
-
-				set32( CARD_SSTATUS, 0x10 );
-#ifdef CARDDEBUG
-				dbgprintf(":%d\n", read32(CARD_SRETURN) );
-#endif
+				CARDOK = 1;
 			} break;
 			case 0xC2:
 			{
@@ -635,25 +653,18 @@ void CARDUpdateRegisters( void )
 #ifdef CARDDEBUG
 				dbgprintf("MC:CARDCreate( \"%s\", 0x%04x, 0x%08x )", FileName, Size, FInfo );
 #endif
-
 				CardCreateFile( (char*)FileName, Size, (CARDFileInfo*)FInfo );
 
 				write32( 0x2FA0, read32(0x2FA0) + CARD_XFER_CREATE );
-					
-				while( read32(CARD_SCONTROL) & 1 )
-					clear32( CARD_SCONTROL, 1 );
 
-				set32( CARD_SSTATUS, 0x10 );
-#ifdef CARDDEBUG
-				dbgprintf(":%d\n", read32( CARD_SRETURN ) );
-#endif
+				CARDOK = 1;
 			} break;
 			case 0xC3:
 			{
 				CARDStat CS;
 				
 #ifdef CARDDEBUG
-			//	dbgprintf("MC:CARDGetState( %d, 0x%08x, ",  read32(CARD_SCMD_1), P2C(read32(CARD_SCMD_2)) );
+				dbgprintf("MC:CARDGetState( %d, 0x%08x, ",  read32(CARD_SCMD_1), P2C(read32(CARD_SCMD_2)) );
 #endif
 					
 				if( read32(CARD_SCMD_1) >= CARD_MAX_FILES )
@@ -673,11 +684,6 @@ void CARDUpdateRegisters( void )
 #endif
 					write32( CARD_SRETURN, CARD_NO_FILE );
 				} else {
-					
-#ifdef CARDDEBUG
-				//	dbgprintf("\"%s\")", CS.fileName );
-					dbgprintf("MC:CARDGetState( %d, 0x%08x, \"%s\"):0",  read32(CARD_SCMD_1), P2C(read32(CARD_SCMD_2)), CS.fileName );
-#endif
 
 					CardUpdateStats( &CS );
 				
@@ -711,14 +717,7 @@ void CARDUpdateRegisters( void )
 									
 					write32( CARD_SRETURN, CARD_SUCCESS );
 				}
-				
-				while( read32(CARD_SCONTROL) & 1 )
-					clear32( CARD_SCONTROL, 1 );
-
-				set32( CARD_SSTATUS, 0x10 );
-#ifdef CARDDEBUG
-			//		dbgprintf("MC:CARDGetState( %d, 0x%08x, ):%d\n",  read32(CARD_SCMD_1), P2C(read32(CARD_SCMD_2)), read32( CARD_SRETURN) );
-#endif
+				CARDOK = 1;
 			} break;
 			case 0xC4:
 			{
@@ -727,7 +726,6 @@ void CARDUpdateRegisters( void )
 #ifdef CARDDEBUG
 				dbgprintf("MC:CARDSetState( %d, 0x%08x )",  read32(CARD_SCMD_1), P2C(read32(CARD_SCMD_2)) );
 #endif
-
 				if( read32(CARD_SCMD_1) >= CARD_MAX_FILES )
 				{
 					EXIControl(1);
@@ -792,13 +790,7 @@ void CARDUpdateRegisters( void )
 					write32( CARD_SRETURN, CARD_SUCCESS );
 				}
 
-				while( read32(CARD_SCONTROL) & 1 )
-					clear32( CARD_SCONTROL, 1 );
-
-				set32( CARD_SSTATUS, 0x10 );
-#ifdef CARDDEBUG
-				dbgprintf(":1\n");
-#endif
+				CARDOK = 1;
 			} break;
 			/* CARDFastOpen( u32 FileNO, CARDFileInfo *CFInfo ) */			
 			case 0xC5:
@@ -808,20 +800,10 @@ void CARDUpdateRegisters( void )
 				
 #ifdef CARDDEBUG
 				dbgprintf("MC:CARDFastOpen( %d, 0x%08X )", FileNo, FInfo );
-#endif
-				
+#endif				
 				CardFastOpenFile( FileNo, (CARDFileInfo*)FInfo );
-
-				while( read32(CARD_CONTROL) & 1 )
-					clear32( CARD_CONTROL, 1 );
 				
-				while( (read32(CARD_SSTATUS) & 0x10) != 0x10 )
-					set32( CARD_SSTATUS, 0x10 );
-				
-#ifdef CARDDEBUG
-				dbgprintf(":%d\n", read32( CARD_SRETURN ) );
-#endif
-
+				CARDOK = 1;
 			} break;
 			case 0xC6:
 			{
@@ -835,14 +817,8 @@ void CARDUpdateRegisters( void )
 				CardDeleteFile( (char*)FileName );
 
 				write32( 0x2FA0, read32(0x2FA0) + CARD_XFER_DELETE );
-					
-				while( read32(CARD_SCONTROL) & 1 )
-					clear32( CARD_SCONTROL, 1 );
 
-				set32( CARD_SSTATUS, 0x10 );
-#ifdef CARDDEBUG
-				dbgprintf(":%d\n", read32( CARD_SRETURN ) );
-#endif
+				CARDOK = 1;
 			} break;
 			case 0xC8:
 			{
@@ -854,7 +830,6 @@ void CARDUpdateRegisters( void )
 #ifdef CARDDEBUG
 				dbgprintf("MC:CARDWrite( %d, 0x%08x, 0x%04x, 0x%04x )", FileNo, Buffer, Offset, Length );
 #endif
-
 				if( FileNo >= CARD_MAX_FILES )
 				{
 					EXIControl(1);
@@ -868,14 +843,7 @@ void CARDUpdateRegisters( void )
 					
 				write32( CARD_SRETURN, 0 );
 
-				while( read32(CARD_SCONTROL) & 1 )
-					clear32( CARD_SCONTROL, 1 );
-
-				set32( CARD_SSTATUS, 0x10 );
-				
-#ifdef CARDDEBUG
-				dbgprintf(":%u\n", read32(CARD_SRETURN) );
-#endif
+				CARDOK = 1;
 			} break;
 			case 0xC9:
 			{
@@ -887,7 +855,6 @@ void CARDUpdateRegisters( void )
 #ifdef CARDDEBUG
 				dbgprintf("MC:CARDRead( %d, 0x%08x, 0x%04x, 0x%04x )", FileNo, Buffer, Offset, Length );
 #endif
-
 				if( FileNo >= CARD_MAX_FILES )
 				{
 					EXIControl(1);
@@ -900,15 +867,8 @@ void CARDUpdateRegisters( void )
 				write32( 0x2FA0, read32(0x2FA0) + Length );
 
 				write32( CARD_SRETURN, 0 );
-
-				while( read32(CARD_SCONTROL) & 1 )
-					clear32( CARD_SCONTROL, 1 );
-
-				set32( CARD_SSTATUS, 0x10 );
 				
-#ifdef CARDDEBUG
-				dbgprintf(":%u\n", read32(CARD_SRETURN) );
-#endif
+				CARDOK = 1;
 			} break;
 			case 0xCA:
 			{
@@ -919,14 +879,8 @@ void CARDUpdateRegisters( void )
 				CardFastDelete( FileNo );
 
 				write32( 0x2FA0, read32(0x2FA0) + CARD_XFER_DELETE );
-					
-				while( read32(CARD_SCONTROL) & 1 )
-					clear32( CARD_SCONTROL, 1 );
 
-				set32( CARD_SSTATUS, 0x10 );
-#ifdef CARDDEBUG
-				dbgprintf(":%d\n", read32( CARD_SRETURN ) );
-#endif
+				CARDOK = 1;
 			} break;
 			case 0xCB:
 			{
@@ -941,14 +895,19 @@ void CARDUpdateRegisters( void )
 #endif
 				CardRename( NameSrc, NameDst );
 
-				while( read32(CARD_SCONTROL) & 1 )
-					clear32( CARD_SCONTROL, 1 );
-
-				set32( CARD_SSTATUS, 0x10 );
-#ifdef CARDDEBUG
-				dbgprintf(":%d\n", read32( CARD_SRETURN ) );
-#endif
+				CARDOK = 1;
 			} break;
+		}
+
+		if(CARDOK)
+		{
+#ifdef CARDDEBUG
+			dbgprintf(":%d\n", read32( CARD_SRETURN ) );
+#endif
+			while( read32(CARD_SCONTROL) & 1 )
+				clear32( CARD_SCONTROL, 1 );
+
+			set32( CARD_SSTATUS, 0x10 );
 		}
 
 		if( ConfigGetConfig(DML_CFG_ACTIVITY_LED) )

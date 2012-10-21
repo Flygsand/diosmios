@@ -18,8 +18,9 @@ CARDCreate:
 DoCode:
 
 	mflr    %r0
-	stw     %r0,	4(%sp)
-	stwu    %sp,	-0x10(%sp)	
+	stw     %r0, 4(%sp)
+	stwu    %sp, -0x28(%sp)
+	stmw    %r27, 0x14(%sp)
 				
 #send cmd to DM
 
@@ -80,9 +81,10 @@ skip_cb:
 	lis		%r7,	0xC000
 	lwz     %r3,	0x2F94(%r7)
 	mr		%r4,	%r3
-
-	lwz     %r0,	0x14(%sp)
-	addi    %sp,	%sp,	0x10
-	mtlr    %r0
+	
+	lmw		%r27,	0x14(%sp)
+	lwz		%r0,	0x2C(%sp)
+	addi	%sp,	%sp,	0x28
+	mtlr	%r0
 	blr
 

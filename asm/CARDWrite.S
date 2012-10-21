@@ -11,7 +11,8 @@ CardWrite:
 
 	mflr    %r0
 	stw     %r0, 4(%sp)
-	stwu    %sp, -0x10(%sp)	
+	stwu    %sp, -0x28(%sp)
+	stmw    %r27, 0x14(%sp)
 	
 #Update fileinfo
 	stw     %r5,	0x0C(%r3)
@@ -65,16 +66,17 @@ wait_loop:
 	
 	cmpwi	%r12,	0
 	beq		skip_cb
-	mtctr	%r12
+	mtlr	%r12
 	li      %r3,	0
 	li      %r4,	0
-	bctrl
+	blrl
 
 skip_cb:	
 	li      %r3,	0
 	mr		%r4,	%r3
-	
-	lwz     %r0,	0x14(%sp)
-	addi    %sp,	%sp,	0x10
-	mtlr    %r0
+
+	lmw		%r27,	0x14(%sp)
+	lwz		%r0,	0x2C(%sp)
+	addi	%sp,	%sp,	0x28
+	mtlr	%r0
 	blr

@@ -66,8 +66,6 @@ typedef struct _gx_rmodeobj {
 #define GXNtsc480IntDf		3
 #define GXNtsc480Int		4
 
-
-void PatchGCIPL( void );
 void DoPatches( char *ptr, u32 size, u32 SectionOffset );
 void DoCardPatches( char *ptr, u32 size, u32 SectionOffset );
 void DoPatchesLoader( char *ptr, u32 size );

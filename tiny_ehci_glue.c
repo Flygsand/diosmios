@@ -34,7 +34,7 @@ void BUG(void)
 
 void msleep(int msec)
 {
-	udelay(2048*msec);
+	udelay(msec*1000);
 }
 extern u32 __exe_start_virt__;
 extern u32 __ram_start_virt__;

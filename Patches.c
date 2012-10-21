@@ -148,7 +148,7 @@ FuncPattern FPatterns[] =
 	{ 0x3B0,        87,     13,     27,     17,     25,	(u8*)NULL,					0xdead000B,						"PADRead C",					2,		0 },
 	{ 0x334,        78,     7,      20,     17,     19,	(u8*)NULL,					0xdead000B,						"PADRead D",					2,		0 },
 
-};
+};	
 
 FuncPattern CPatterns[] =
 {
@@ -452,10 +452,15 @@ void DoCardPatches( char *ptr, u32 size, u32 SectionOffset )
 						if( (read32( offset + 0x04 ) & 0x0000F000 ) == 0x00008000 )	// lis
 						{
 							write32( offset, read32( offset + 0x0C ) & 0xFBE00000 );
+							offset += 4;
+
+							if( CPatterns[j].Patch == CARDCheckEX )
+							{
+								write32( offset, 0x38800000 );	// lis r4,0
+								offset += 4;
+							}
 
 							//Forge a branch to the async function
-
-							offset += 4;
 
 							u32 newval = ((u32)ptr + i) - offset;
 							newval&= 0x03FFFFFC;
@@ -478,13 +483,18 @@ void DoCardPatches( char *ptr, u32 size, u32 SectionOffset )
 		}
 	}
 	
-	for( j=0; j < sizeof(CPatterns)/sizeof(FuncPattern); ++j )
-	{
-		if( CPatterns[j].Found == 0 )
-			dbgprintf("Pattern %s not found!\n", CPatterns[j].Name );
-	}
+
+	//if( CardLowestOff )
+	//{
+	//	for( j=0; j < sizeof(CPatterns)/sizeof(FuncPattern); ++j )
+	//	{
+	//		if( CPatterns[j].Found == 0 )
+	//			dbgprintf("Pattern %s not found!\n", CPatterns[j].Name );
+	//	}
+	//}
 
 	return;
+
 }
 void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 {
@@ -517,9 +527,11 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 		write32(0x00003194, 0x48000028);
 	}
 	
+
 	// Reset Found
 	for( k=0; k < sizeof(FPatterns)/sizeof(FuncPattern); ++k )
-		FPatterns[k].Found = 0;	
+		FPatterns[k].Found = 0;
+	
 	
 	if( ConfigGetConfig(DML_CFG_NMM) )
 		DoCardPatches( ptr, size, SectionOffset );
@@ -736,12 +748,25 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 			}
 		}
 
-		if( ConfigGetConfig(DML_CFG_CHEATS) )
+		if( (PatchCount & 64) == 0 )
 		{
-			if( PatchCount == 63 )
+			if( read32( (u32)ptr + i + 0 ) == 0x3C608000 )
+			{
+				if( ((read32( (u32)ptr + i + 4 ) & 0xFC1FFFFF ) == 0x800300CC) && ((read32( (u32)ptr + i + 8 ) >> 24) == 0x54 ) )
+				{
+					dbgprintf( "Patch:[VIConfgiure] 0x%08X\n", (u32)(ptr+i) );
+					write32( *(vu32*)(ptr+i+4), 0x5400F0BE | ((read32( (u32)ptr + i + 4 ) & 0x3E00000) >> 5	) );
+					PatchCount |= 64;
+				}
+			}
+		}
+
+		if( ConfigGetConfig(DML_CFG_CHEATS) || ConfigGetConfig( DML_CFG_DEBUGGER ) )
+		{
+			if( PatchCount == 127 )
 				break;
 		} else {
-			if( PatchCount == 47 )
+			if( PatchCount == 111 )
 				break;
 		}
 	}

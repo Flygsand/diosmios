@@ -8,9 +8,7 @@
 #include "vsprintf.h"
 #include "HW.h"
 #include "vsprintf.h"
-#ifdef TRIFORCE
-#include "JVSIOMessage.h"
-#endif
+
 #define		CARD_MAX_FILES	128
 
 #define		CARD_BASE		0x00002F60
@@ -44,7 +42,6 @@
 #define CARD_XFER_SETSTATUS     (1 * 8 * 1024)  // CARDSetStatus[Async]
 #define CARD_XFER_SETATTRIBUTES (1 * 8 * 1024)  // CARDSetAttributes[Async]
 #define CARD_XFER_WRITE         (1 * 8 * 1024)  // CARDWrite[Async]
-
 
 #define		CARD_FILENAME_MAX		32
 
