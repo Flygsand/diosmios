@@ -10,6 +10,7 @@
 #include "dol.h"
 #include "Config.h"
 
+#define MAX_FB				3
 
 typedef struct PatchInfo
 {
@@ -60,12 +61,22 @@ typedef struct _gx_rmodeobj {
 	u8  vfilter[7];
 } GXRModeObj;
 
+
+#define VI_NTSC				0
+#define VI_PAL				1
+#define VI_MPAL				2
+#define VI_DEBUG			3
+#define VI_DEBUG_PAL		4
+#define VI_EUR60			5
+
 #define GXPal528IntDf		0
 #define GXEurgb60Hz480IntDf	1
 #define GXMpal480IntDf		2
 #define GXNtsc480IntDf		3
 #define GXNtsc480Int		4
 
+void SMenuAddFramebuffer( void );
+void ScreenShot( void );
 void DoPatches( char *ptr, u32 size, u32 SectionOffset );
 void DoCardPatches( char *ptr, u32 size, u32 SectionOffset );
 void DoPatchesLoader( char *ptr, u32 size );

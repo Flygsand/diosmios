@@ -65,6 +65,7 @@ enum dmlconfig
 	DML_CFG_BOOT_DISC	= (1<<10),
 	DML_CFG_BOOT_DISC2	= (1<<11),
 	DML_CFG_NODISC		= (1<<12),
+	DML_CFG_SCREENSHOT	= (1<<13),
 };
 
 enum dmlvideomode

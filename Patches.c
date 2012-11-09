@@ -6,6 +6,18 @@
 #include "CheatCode.c"
 
 extern u32 DOLSize;
+u32 FrameBuffer	= 0;
+u32 FBOffset	= 0;
+u32 FBEnable	= 0;
+u32	FBSize		= 0;
+
+unsigned char VISetFB[] =
+{
+    0x38, 0x7F, 0x00, 0xF0,		//	mr      %r3, %r7
+	0x38, 0x9F, 0x01, 0x24,
+	0x38, 0xBF, 0x01, 0x28,
+	0x38, 0xDF, 0x01, 0x3C, 
+};
 
 unsigned char OSReportDM[] =
 {
@@ -147,7 +159,7 @@ FuncPattern FPatterns[] =
 	{ 0x2FC,        73,     8,      23,     16,     15,	(u8*)NULL,					0xdead000B,						"PADRead B",					2,		0 },
 	{ 0x3B0,        87,     13,     27,     17,     25,	(u8*)NULL,					0xdead000B,						"PADRead C",					2,		0 },
 	{ 0x334,        78,     7,      20,     17,     19,	(u8*)NULL,					0xdead000B,						"PADRead D",					2,		0 },
-
+	{ 0x2A8,        66,     4,      20,     17,     14,	(u8*)NULL,					0xdead000B,						"PADRead E",					2,		0 },
 };	
 
 FuncPattern CPatterns[] =
@@ -197,7 +209,97 @@ FuncPattern CPatterns[] =
 
 u32 CardLowestOff = 0;
 
+u32 FB[MAX_FB];
 
+void SMenuAddFramebuffer( void )
+{
+	u32 i,j,f;
+
+	if( *(vu32*)FBEnable != 1 )
+		return;
+
+	FrameBuffer = (*(vu32*)FBOffset) & 0x7FFFFFFF;
+
+	for( i=0; i < MAX_FB; i++)
+	{
+		if( FB[i] )	//add a new entry
+			continue;
+		
+		//check if we already know this address
+		f=0;
+		for( j=0; j<i; ++j )
+		{
+			if( FrameBuffer == FB[j] )	// already known!
+			{
+				f=1;
+				return;
+			}
+		}
+		if( !f && FrameBuffer && FrameBuffer < 0x14000000 )	// add new entry
+		{
+			dbgprintf("ES:Added new FB[%d]:%08X\n", i, FrameBuffer );
+			FB[i] = FrameBuffer;
+
+			switch( *(vu32*)(FBEnable+0x20) )
+			{
+				case VI_NTSC:
+					FBSize = 304*480*4;
+					break;
+				case VI_PAL:
+					FBSize = 320*480*4;
+					break;
+				case VI_EUR60:
+					FBSize = 320*480*4;
+					break;
+				default:
+					dbgprintf("ES:SMenuFindOffsets():Invalid Video mode:%d\n", *(vu32*)(FBEnable+0x20) );
+					break;
+			}
+		}
+	}
+}
+void ScreenShot( void )
+{
+	if( *(vu32*)FBEnable != 1 )
+		return;			
+			
+	set32( HW_GPIO_OUT, 1<<5 );
+
+	char *str = (char*)malloc( 64 );
+
+	u32 i=0,r,wrote;
+	FIL SCRFile;
+	
+	sprintf( str, "/screenshots" );
+	f_mkdir( str );
+
+	do
+	{
+		sprintf( str, "/screenshots/scrn_%02X.raw", i++ );
+		r = f_open( &SCRFile, str, FA_CREATE_NEW|FA_WRITE );
+		if( r == FR_OK )
+		{
+			break;
+		} else {
+			if( r != FR_EXIST )
+			{
+				dbgprintf("Failed to create file:%u\n", r );				
+				clear32( HW_GPIO_OUT, 1<<5 );
+				return;
+			}
+		}
+	} while(1);
+
+	free(str);
+
+	if( r == FR_OK )
+	{
+		f_write( &SCRFile, (void*)(FB[0]), FBSize, &wrote );
+		f_close( &SCRFile );
+	}
+
+	clear32( HW_GPIO_OUT, 1<<5 );
+}
 void PatchB( u32 dst, u32 src )
 {
 	u32 newval = (dst - src);
@@ -500,6 +602,10 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 {
 	u32 i=0,j=0,k=0,value;
 	u32 PatchCount = 0;
+	u32 r13  = 0;
+
+	FBOffset = 0;
+	FBEnable = 0;
 
 	dbgprintf("DoPatches( 0x%p, %d, 0x%X)\n", ptr, size, SectionOffset );
 
@@ -761,12 +867,54 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 			}
 		}
 
+		if( (PatchCount & 128) == 0 )
+		{
+			if( ConfigGetConfig(DML_CFG_SCREENSHOT) )
+			{
+				if( *(u32*)(ptr+i) >> 16 == 0x3DA0 && r13 == 0 )
+				{
+					r13 = ((*(u32*)(ptr+i)) & 0xFFFF) << 16;
+					r13|= (*(u32*)(ptr+i+4)) & 0xFFFF;
+
+					dbgprintf("Patch:r13:%08X\n", r13 );
+				}
+
+				if( memcmp( ptr+i, VISetFB, sizeof(VISetFB) ) == 0 && FBEnable == 0 )
+				{
+					dbgprintf("Patch:[VISetFB]%08X\n", (u32)ptr+i );
+
+					FBEnable = ( *(u32*)(ptr+i-4) );
+
+					if( FBEnable & 0x8000 )
+					{
+						FBEnable = ((~FBEnable) & 0xFFFF) + 1;
+						FBEnable = (r13 - FBEnable) & 0x7FFFFFF;
+					} else {
+						FBEnable = FBEnable & 0xFFFF;
+						FBEnable = (r13 + FBEnable) & 0x7FFFFFF;
+					}
+
+					FBOffset = FBEnable - 0x08;
+				//	dbgprintf("FBOffset:%08X\n", FBOffset );
+				//	dbgprintf("FBEnable:%08X\n", FBEnable );
+				
+					for( j=0; j < MAX_FB; ++j )
+						FB[j] = 0;
+
+					PatchCount |= 128;
+				}
+			} else  {
+				PatchCount |= 128;
+
+			}
+		}
+
 		if( ConfigGetConfig(DML_CFG_CHEATS) || ConfigGetConfig( DML_CFG_DEBUGGER ) )
 		{
-			if( PatchCount == 127 )
+			if( PatchCount == 255 )
 				break;
 		} else {
-			if( PatchCount == 111 )
+			if( PatchCount == 239 )
 				break;
 		}
 	}
@@ -881,8 +1029,8 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 
 						dbgprintf("Patch:[PADRead hook] %08X\n", FOffset + j );
 				
-						memcpy( (void*)0x2EE0, padipc, sizeof(padipc) );
-						PatchB( 0x2EE0, FOffset + j );
+						memcpy( (void*)0x2ECC, padipc, sizeof(padipc) );
+						PatchB( 0x2ECC, FOffset + j );
 						write32( 0x12FC, 0 );
 	
 					} break;

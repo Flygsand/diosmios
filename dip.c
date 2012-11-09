@@ -335,7 +335,7 @@ u32 DIUpdateRegisters( void )
 
 	if( (u64)read32(HW_TIMER) >= 2 * 60 * 243000000LL / 128 )
 	{
-		USBStorage_Read_Sectors( (read32(HW_TIMER) << 3) & 0x00FFFFFF, 1, (void*)0x1000 );
+		USBStorage_Read_Sectors( (read32(HW_TIMER) << 3) & 0x000FFFFF, 1, (void*)0x1000 );
 
 		write32( HW_TIMER, 0 );
 	}

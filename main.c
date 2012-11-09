@@ -19,6 +19,7 @@ Copyright (C) 2010-2012  crediar
 #include "DVD.h"
 #include "Drive.h"
 #include "dip.h"
+#include "Patches.h"
 
 char __aeabi_unwind_cpp_pr0[0];
 
@@ -248,10 +249,23 @@ int main( int argc, char *argv[] )
 	write32( 0x30F8, 0 );			// Tell PPC side to start
 
 	ahb_flush_to( AHB_PPC );
+
+	u32 PADLock = 0;
 	
 	while (1)
 	{
 		ahb_flush_from( AHB_STARLET );	//flush to arm
+		
+		if( (((read32(0x12F8) >> 16) & 0x30) == 0x30 ) )
+		{
+			if( !PADLock )
+			{
+				ScreenShot();
+				PADLock = 1;
+			}
+		} else {
+			PADLock = 0;
+		}
 
 		if( (((read32(0x12FC) >> 16) & 0x1030) == 0x1030 ) )
 		{
@@ -286,6 +300,7 @@ int main( int argc, char *argv[] )
 
 		//	write32(0x1860, 0xdeadbeef);
 		//}
+		SMenuAddFramebuffer();
 
 		DIUpdateRegisters();
 
