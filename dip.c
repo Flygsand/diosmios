@@ -15,6 +15,7 @@ u32 DOLSize			= 0;
 u32 DOLOffset		= 0;
 s32 ELFNumberOfSections = 0;
 u32 FSTMode			= 0;
+u32 DiscChangeIRQ	= 0;
 
 extern DML_CFG *DMLCfg;
 
@@ -106,6 +107,39 @@ u32 DIUpdateRegisters( void )
 			
 			switch( read32(DI_SCMD_0) >> 24 )
 			{
+				case 0xE3:
+				{
+					dbgprintf("DIP:DVDLowStopMotor()\n");
+
+					u32 CDiscNumber = (read32(4) << 16 ) >> 24;
+					dbgprintf("DIP:Current disc number:%u\n", CDiscNumber + 1 );
+
+					if( CDiscNumber )
+					{
+						ConfigClearConfig(DML_CFG_BOOT_DISC2);
+					} else {
+						ConfigSetConfig(DML_CFG_BOOT_DISC2);
+					}
+
+					f_close( &GameFile );
+
+					dbgprintf("DVDSelectGame():%d\n", DVDSelectGame() );
+
+					DiscChangeIRQ = 1;
+					
+					while( read32(DI_SCONTROL) & 1 )
+						clear32( DI_SCONTROL, 1 );
+
+					set32( DI_SSTATUS, 0x3A );
+
+					write32( 0x0d80000C, (1<<0) | (1<<4) );
+					write32( HW_PPCIRQFLAG, read32(HW_PPCIRQFLAG) );
+					write32( HW_ARMIRQFLAG, read32(HW_ARMIRQFLAG) );
+					set32( 0x0d80000C, (1<<2) );
+
+					write32( HW_TIMER, 0 );
+
+				} break;
 				case 0xA7:
 				case 0xA9:
 					//dbgprintf("DIP:Async!\n");
@@ -333,7 +367,7 @@ u32 DIUpdateRegisters( void )
 		}
 	}
 
-	if( (u64)read32(HW_TIMER) >= 2 * 60 * 243000000LL / 128 )
+	if( (u64)read32(HW_TIMER) >= 25 * 243000000LL / 128 )
 	{
 		USBStorage_Read_Sectors( (read32(HW_TIMER) << 3) & 0x000FFFFF, 1, (void*)0x1000 );
 

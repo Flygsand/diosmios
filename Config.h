@@ -90,6 +90,8 @@ enum VideoModes
 
 void ConfigInit( DML_CFG *Cfg );
 u32 ConfigGetConfig( u32 Config );
+void ConfigSetConfig( u32 Config );
+void ConfigClearConfig( u32 Config );
 u32 ConfigGetVideMode( void );
 
 char *ConfigGetGamePath( void );

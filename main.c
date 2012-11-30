@@ -21,26 +21,24 @@ Copyright (C) 2010-2012  crediar
 #include "dip.h"
 #include "Patches.h"
 
+extern u32 DiscChangeIRQ;
+
 char __aeabi_unwind_cpp_pr0[0];
 
 void Syscall( u32 a, u32 b, u32 c, u32 d )
 {
-	dbgprintf("Syscall,%d,%d,%d,%d\n", a, b, c, d);
+	//dbgprintf("Syscall,%d,%d,%d,%d\n", a, b, c, d);
 	return;
 }
 void SWI( u32 a, u32 b )
 {
-	dbgprintf("SWI:%X,%X\n", a, b );
+	//dbgprintf("SWI:%X,%X\n", a, b );
 	return;
 }
 void PrefetchAbort( void )
 {
-	u32 val;
-	__asm("mov	%0,lr": "=r" (val) );
-	
-	*(vu32*)0xD800070 |= 1;
-
-	dbgprintf("PrefetchAbort LR:%08x\n", val-8 );
+	EXIControl(1);
+	dbgprintf("PrefetchAbort\n");
 	while(1);
 	return;
 }
@@ -52,13 +50,13 @@ void DataAbort( u32 a, u32 b, u32 c, u32 d, u32 e, u32 f, u32 g, u32 h )
 
 	*(vu32*)0xD800070 |= 1;
 	
-	dbgprintf("DataAbort: LR:%08x, %x, %x, %x, %x, %x, %x, %x\n",val-8,b,c,d,e,f,g,h);
+	dbgprintf("DataAbort: LR:%08x, %x, %x, %x, %x, %x, %x, %x\n",val,b,c,d,e,f,g,h);
 	Shutdown();
 }
 void IRQHandler( void )
 {
 	u32 IRQs = read32(HW_ARMIRQFLAG) /*& read32(HW_ARMIRQMASK)*/;
-
+	
 	if( IRQs & IRQ_GPIO1 )	// Starlet GPIO IRQ
 	{
 		if( read32(HW_GPIO_INTFLAG) & (1) )
@@ -85,17 +83,11 @@ void IRQHandler( void )
 
 			while(1);
 		}
-	} else if( IRQs & IRQ_RESET )
-	{
-		;
-	} else {
-		
-		set32( HW_EXICTRL, 1 );
-
-		udelay(1000);
-		dbgprintf("IRQ:%08X %08X\n", read32(HW_ARMIRQFLAG), read32(HW_GPIO_INTFLAG) );
-		set32( HW_EXICTRL, 0 );
 	}
+
+	//Clear IRQ Flags
+	write32( HW_ARMIRQFLAG, read32(HW_ARMIRQFLAG) );
+	write32( HW_GPIO_INTFLAG, read32(HW_GPIO_INTFLAG) );
 
 	return;
 }
@@ -168,9 +160,7 @@ int main( int argc, char *argv[] )
 #endif
 	dbgprintf("Built: " __DATE__ " " __TIME__ "\n");
 	dbgprintf("This software is licensed under GPLv3, for more details visit:\nhttp://code.google.com/p/diosmios\n");
-
-	//dbgprintf("CPU Ver:%d.%d\n", SP[1], SP[0] );
-	
+		
 	//dbgprintf("MEMInitLow()...\n");
 	MEMInitLow();
 	
@@ -207,6 +197,8 @@ int main( int argc, char *argv[] )
 	DVDInit();
 
 	ConfigInit( (DML_CFG*)0x01200000 );
+
+	ConfigSetConfig( DML_CFG_BOOT_DISC2 );
 
 	if( !ConfigGetConfig(DML_CFG_BOOT_DISC) )
 	{
@@ -265,6 +257,27 @@ int main( int argc, char *argv[] )
 			}
 		} else {
 			PADLock = 0;
+		}
+
+		if( DiscChangeIRQ )
+		if( read32(HW_TIMER) * 128 / 243000000 > 2 )
+		{
+		//	dbgprintf("DIP:IRQ mon!\n");
+
+			//DVDGetDriveStatus
+			//write32( 0x01576D4, 0x38600000 );
+
+			while( read32(DI_SCONTROL) & 1 )
+				clear32( DI_SCONTROL, 1 );
+
+			set32( DI_SSTATUS, 0x3A );
+
+			write32( 0x0d80000C, (1<<0) | (1<<4) );
+			write32( HW_PPCIRQFLAG, read32(HW_PPCIRQFLAG) );
+			write32( HW_ARMIRQFLAG, read32(HW_ARMIRQFLAG) );
+			set32( 0x0d80000C, (1<<2) );
+
+			DiscChangeIRQ = 0;
 		}
 
 		if( (((read32(0x12FC) >> 16) & 0x1030) == 0x1030 ) )

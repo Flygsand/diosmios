@@ -648,15 +648,15 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 	for( i=0; i < size; i+=4 )
 	{
 		if( (PatchCount & 2) == 0 )
-		if( (read32( (u32)ptr + i )&0xFC00FFFF) == 0x5400077A &&
-			(read32( (u32)ptr + i + 4 )&0xFC00FFFF) == 0x28000000 &&
-			read32( (u32)ptr + i + 8 )	== 0x41820008 &&
-			(read32( (u32)ptr + i +12 )&0xFC00FFFF)	== 0x64002000
-			) 
+		if( (read32( (u32)ptr + i )		& 0xFC00FFFF)	== 0x5400077A &&
+			(read32( (u32)ptr + i + 4 )	& 0xFC00FFFF)	== 0x28000000 &&
+			 read32( (u32)ptr + i + 8 )					== 0x41820008 &&
+			(read32( (u32)ptr + i +12 )	& 0xFC00FFFF)	== 0x64002000
+			)  
 		{
 			dbgprintf("Patch:Found [__OSDispatchInterrupt]: 0x%08X 0x%08X\n", (u32)ptr + i + 0 + SectionOffset, (u32)ptr + i + 0x1A8 + SectionOffset );
 				
-			write32( (u32)ptr + i + 0,		(read32( (u32)ptr + i + 0 )	& 0xFFFF0000) | 0x0463 );
+			write32( (u32)ptr + i + 0,		(read32( (u32)ptr + i + 0 )		& 0xFFFF0000) | 0x0463 );
 			write32( (u32)ptr + i + 0x1A8,	(read32( (u32)ptr + i + 0x1A8 )	& 0xFFFF0000) | 0x0463 );
 
 			PatchCount |= 2;
@@ -909,12 +909,73 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 			}
 		}
 
+		if( (PatchCount & 256) == 0 )	//DVDLowStopMotor
+		{
+			if( read32( (u32)ptr + i ) == 0x3C00E300 )
+			{
+				u32 Offset = (u32)ptr + i;
+
+				dbgprintf("Patch:[DVDLowStopMotor] 0x%08X\n", Offset + SectionOffset );
+				
+				value = *(vu32*)(Offset-12);
+				value&= 0xFFFF0000;
+				value|= 0x0000C000;
+				*(vu32*)(Offset-12) = value;
+
+				value = *(vu32*)(Offset-8);
+				value&= 0xFFFF0000;
+				value|= 0x00002F00;
+				*(vu32*)(Offset-8) = value;
+
+				value = *(vu32*)(Offset+4);
+				value&= 0xFFFF0000;
+				value|= 0x00002F08;
+				*(vu32*)(Offset+4) = value;		
+
+				PatchCount |= 256;
+			}
+		}
+
+		if( (PatchCount & 512) == 0 )	//DVDLowReadDiskID
+		{
+			if( (read32( (u32)ptr + i ) & 0xFFFF ) == 0xA800 && (read32( (u32)ptr + i + 4 ) & 0xFFFF ) == 0x40 )
+			{
+				u32 Offset = (u32)ptr + i;
+
+				dbgprintf("Patch:[DVDLowReadDiskID] 0x%08X\n", Offset + SectionOffset );
+
+				value = *(vu32*)(Offset);
+				value&= 0xFFFF0000;
+				value|= 0x0000A700;
+				*(vu32*)(Offset) = value;
+
+				value = *(vu32*)(Offset+0x20);
+				value&= 0xFFFF0000;
+				value|= 0x0000C000;
+				*(vu32*)(Offset+0x20) = value;
+				
+				value = *(vu32*)(Offset+0x24);
+				value&= 0xFFFF0000;
+				value|= 0x00002F00;
+				*(vu32*)(Offset+0x24) = value;
+
+				value = *(vu32*)(Offset+0x2C);
+				value&= 0xFFFF0000;
+				value|= 0x00002F08;
+				*(vu32*)(Offset+0x2C) = value;
+
+				write32( 0x01576D4, 0x38600000 );
+
+				PatchCount |= 512;				
+			}
+		}
+
 		if( ConfigGetConfig(DML_CFG_CHEATS) || ConfigGetConfig( DML_CFG_DEBUGGER ) )
 		{
-			if( PatchCount == 255 )
+			if( PatchCount == 1023 )
 				break;
 		} else {
-			if( PatchCount == 239 )
+			if( PatchCount == 1007 )
 				break;
 		}
 	}

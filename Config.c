@@ -59,6 +59,14 @@ inline u32 ConfigGetConfig( u32 Config )
 {
 	return !!(DMLCfg->Config & Config);
 }
+inline void ConfigSetConfig( u32 Config )
+{
+	DMLCfg->Config |= Config;
+}
+inline void ConfigClearConfig( u32 Config )
+{
+	DMLCfg->Config &= ~Config;
+}
 u32 ConfigGetVideMode( void )
 {
 	return DMLCfg->VideoMode;
