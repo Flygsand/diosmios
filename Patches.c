@@ -144,6 +144,7 @@ FuncPattern FPatterns[] =
 
 	
 	{ 0xCC,			3,		3,		1,		0,		3,	(u8*)NULL,					0xdead000C,						"C_MTXPerspective",				0,		0 },
+	{ 0xC8,			3,      3,      1,      0,      3,	(u8*)NULL,					0xdead000D,						"C_MTXLightPerspective",		0,		0 },
 
 	{ 0x94, 		18, 	10, 	2, 		0, 		2,	(u8*)__dvdLowReadAudioNULL, sizeof(__dvdLowReadAudioNULL), "DVDLowReadAudio", 				0, 		0 },
 	{ 0x88, 		18, 	8, 		2, 		0, 		2,	(u8*)__dvdLowAudioStatusNULL, sizeof(__dvdLowAudioStatusNULL), "DVDLowAudioStatus", 		0, 		0 },
@@ -606,6 +607,7 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 
 	FBOffset = 0;
 	FBEnable = 0;
+	CardLowestOff = 0;
 
 	dbgprintf("DoPatches( 0x%p, %d, 0x%X)\n", ptr, size, SectionOffset );
 
@@ -938,7 +940,7 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 
 		if( (PatchCount & 512) == 0 )	//DVDLowReadDiskID
 		{
-			if( (read32( (u32)ptr + i ) & 0xFFFF ) == 0xA800 && (read32( (u32)ptr + i + 4 ) & 0xFFFF ) == 0x40 )
+			if( (read32( (u32)ptr + i ) & 0xFCFFFFFF ) == 0x3C00A800 && (read32( (u32)ptr + i + 4 ) & 0xFCFFFFFF ) == 0x38000040 )
 			{
 				u32 Offset = (u32)ptr + i;
 
@@ -1095,20 +1097,39 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 						write32( 0x12FC, 0 );
 	
 					} break;
-					case 0xdead000C:	// Widescreen hack by Extrems
+// Widescreen hack by Extrems
+					case 0xdead000C:	//	C_MTXPerspective
 					{
 						if( !ConfigGetConfig(DML_CFG_FORCE_WIDE) )
 							break;
-
-						dbgprintf("Patch:[MTXPerspectiveSig] 0x%08X \n", (u32)FOffset);
-
+						
 						*(volatile float *)0x00000050 = 0.5625f;
+
 						memcpy((void*)(FOffset+ 28),(void*)(FOffset+ 36),44);
 						memcpy((void*)(FOffset+188),(void*)(FOffset+192),16);
+
 						*(unsigned int*)(FOffset+52) = 0x48000001 | ((*(unsigned int*)(FOffset+52) & 0x3FFFFFC) + 8);
-						*(unsigned int*)(FOffset+72) = 0x3C600000 | (0x80000050 >> 16);			// lis		3, 0x8180
+						*(unsigned int*)(FOffset+72) = 0x3C600000 | (0x80000050 >> 16);		// lis		3, 0x8180
 						*(unsigned int*)(FOffset+76) = 0xC0230000 | (0x80000050 & 0xFFFF);	// lfs		1, -0x1C (3)
-						*(unsigned int*)(FOffset+80) = 0xEC240072; // fmuls	1, 4, 1
+						*(unsigned int*)(FOffset+80) = 0xEC240072;							// fmuls	1, 4, 1
+
+					} break;
+					case 0xdead000D:	//	C_MTXLightPerspective
+					{
+						if( !ConfigGetConfig(DML_CFG_FORCE_WIDE) )
+							break;
+						
+						*(volatile float *)0x00000050 = 0.5625f;
+
+						*(u32*)(FOffset+36) = *(u32*)(FOffset+32);
+
+						memcpy((void*)(FOffset+ 28),(void*)(FOffset+ 36),60);
+						memcpy((void*)(FOffset+184),(void*)(FOffset+188),16);
+
+						*(u32*)(FOffset+68) += 8;
+						*(u32*)(FOffset+88) = 0x3C600000 | (0x80000050 >> 16); 		// lis		3, 0x8180
+						*(u32*)(FOffset+92) = 0xC0230000 | (0x80000050 & 0xFFFF);	// lfs		1, -0x90 (3)
+						*(u32*)(FOffset+96) = 0xEC240072;							// fmuls	1, 4, 1
 
 					} break;
 					default:
