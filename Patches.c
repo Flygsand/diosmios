@@ -940,7 +940,7 @@ void DoPatches( char *ptr, u32 size, u32 SectionOffset )
 
 		if( (PatchCount & 512) == 0 )	//DVDLowReadDiskID
 		{
-			if( (read32( (u32)ptr + i ) & 0xFCFFFFFF ) == 0x3C00A800 && (read32( (u32)ptr + i + 4 ) & 0xFCFFFFFF ) == 0x38000040 )
+			if( (read32( (u32)ptr + i ) & 0xFC00FFFF ) == 0x3C00A800 && (read32( (u32)ptr + i + 4 ) & 0xFC00FFFF ) == 0x38000040 )
 			{
 				u32 Offset = (u32)ptr + i;
 
